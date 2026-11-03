@@ -1,5 +1,4 @@
 const canvas = document.getElementById('canvas');
-// ลบ const API = ... ออก เพราะดึงจาก config.js แล้ว
 let currentPages = []; 
 let currentPageIndex = 0;
 let currentNovelId = null; 
@@ -118,7 +117,7 @@ function createVisualObject(obj, index) {
 }
 
 // ==========================================
-// 4. ระบบอัปโหลด (ดัก Error ตัดพื้นหลัง)
+// 4. ระบบอัปโหลด (สำหรับพื้นหลังและตัวละคร)
 // ==========================================
 async function uploadAndRemoveBG(type) {
     const input = document.createElement('input');
@@ -129,9 +128,9 @@ async function uploadAndRemoveBG(type) {
         if (!file) return;
         
         try {
-            let finalBlob = file; // ค่าเริ่มต้นคือใช้รูปต้นฉบับ
+            let finalBlob = file; 
             
-            // ดักจับ Error เฉพาะตอนตัดพื้นหลัง (ถ้า Browser บล็อก)
+            // ดักจับ Error เฉพาะตอนตัดพื้นหลังตัวละคร
             if(type === 'character' && typeof imglyRemoveBackground === 'function') {
                 try {
                     document.body.style.cursor = 'wait';
@@ -187,7 +186,27 @@ async function uploadAndRemoveBG(type) {
 }
 
 // ==========================================
-// 5. ระบบโหลดเรื่องเดิม
+// 5. [เพิ่มใหม่] ระบบเพิ่มบทพูดโดยไม่ต้องอัปโหลด
+// ==========================================
+function addNewDialogue() {
+    // สร้าง Object บทพูดเปล่าๆ ลงใน State
+    const newObj = {
+        type: 'dialogue',
+        text: '',
+        x: 100, 
+        y: 100,
+        order: currentPages[currentPageIndex].objects.length + 1
+    };
+    
+    // เพิ่มเข้าไปใน Array ของหน้าปัจจุบัน
+    currentPages[currentPageIndex].objects.push(newObj);
+    
+    // วาด Canvas ใหม่เพื่อแสดงกล่องบทพูด
+    renderCanvas();
+}
+
+// ==========================================
+// 6. ระบบโหลดเรื่องเดิม
 // ==========================================
 async function loadUserNovels() {
     const user = JSON.parse(localStorage.getItem('user'));
@@ -213,11 +232,14 @@ async function loadUserNovels() {
 }
 
 // ==========================================
-// 6. Event Handlers
+// 7. Event Handlers
 // ==========================================
 document.getElementById('btn-add-character').onclick = () => uploadAndRemoveBG('character');
-document.getElementById('btn-add-dialogue').onclick = () => uploadAndRemoveBG('dialogue');
 document.getElementById('btn-add-bg').onclick = () => uploadAndRemoveBG('bg');
+
+// [แก้ไข] ปุ่มเพิ่มบทพูดให้เรียกใช้ฟังก์ชันใหม่
+document.getElementById('btn-add-dialogue').onclick = addNewDialogue;
+
 document.getElementById('btn-add-page').addEventListener('click', addNewPage);
 
 document.getElementById('btn-play').addEventListener('click', () => {
@@ -272,7 +294,7 @@ document.getElementById('select-existing-novel').addEventListener('change', asyn
 });
 
 // ==========================================
-// 7. ปุ่มบันทึก
+// 8. ปุ่มบันทึก
 // ==========================================
 document.getElementById('btn-save').addEventListener('click', async () => {
     const user = JSON.parse(localStorage.getItem('user'));
