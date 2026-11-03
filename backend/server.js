@@ -8,19 +8,21 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const app = express();
 
 // ==========================================
-// 1. ตั้งค่า CORS (ความปลอดภัย)
+// 1. ตั้งค่า CORS (แก้ไขให้รองรับ Vercel ทุก URL)
 // ==========================================
 const allowedOrigins = [
     'http://localhost:5500', 
     'http://127.0.0.1:5500',
     'http://localhost:3000',
-    'https://vn-creator-project-frontend.vercel.app' // <-- เพิ่ม URL นี้
+    'https://vn-creator-project-frontend.vercel.app' // URL หลัก
 ];
 
 app.use(cors({
     origin: function (origin, callback) {
-        // อนุญาตถ้าไม่มี origin (เช่น Postman) หรือ origin อยู่ในรายการ
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        // 1. อนุญาต request ที่ไม่มี origin (เช่น Postman)
+        // 2. อนุญาตถ้าอยู่ใน allowedOrigins
+        // 3. อนุญาตทุก URL ที่ลงท้ายด้วย .vercel.app (เพื่อรองรับ URL ใหม่ๆ ของ Vercel)
+        if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
             callback(null, true);
         } else {
             callback(new Error('Not allowed by CORS'));
@@ -74,6 +76,5 @@ app.use('/api/users', require('./routes/user'));
 // ==========================================
 // 4. เริ่มต้น Server
 // ==========================================
-// ใช้ process.env.PORT สำหรับ Render (ถ้าไม่มีให้ใช้ 3000)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
