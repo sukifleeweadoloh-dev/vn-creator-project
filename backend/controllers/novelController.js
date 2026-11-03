@@ -8,14 +8,16 @@ exports.getPopular = async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// 2. [เพิ่มใหม่] ดึงนิยายแบบสุ่มสำหรับหน้า Feed (หน้าแรก)
+// 2. ดึงนิยายแบบสุ่มสำหรับหน้า Feed (หน้าแรก)
 exports.getFeedNovels = async (req, res) => {
     try {
-        // สุ่มดึงนิยายมา 6 เรื่อง (สามารถปรับจำนวนได้)
-        // ORDER BY RANDOM() เป็นคำสั่งของ PostgreSQL ในการสุ่มข้อมูล
+        // สุ่มดึงนิยายมา 6 เรื่อง
         const { rows } = await db.query('SELECT id, title, cover_image, cover_emoji FROM novels ORDER BY RANDOM() LIMIT 6');
         res.json(rows);
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { 
+        console.error("Feed Query Error:", err); // Log ไว้ดูใน Render
+        res.status(500).json({ error: err.message }); 
+    }
 };
 
 // 3. ดึงข้อมูลสำหรับหน้าเล่น (ดึงหน้า, ตัวละคร, บทพูด ทั้งหมด)
@@ -29,10 +31,8 @@ exports.getNovelForPlay = async (req, res) => {
             return res.status(404).json({ error: "ไม่พบนิยายเรื่องนี้" });
         }
         
-        // เพิ่มยอดวิวทุกครั้งที่มีการเปิดอ่าน
         await db.query('UPDATE novels SET views = views + 1 WHERE id = $1', [novelId]); 
         
-        // ใช้ json_agg พร้อมกับ ::json เพื่อให้ JavaScript ฝั่ง Frontend ได้รับค่าเป็น Array เสมอ
         const { rows: pages } = await db.query(`
             SELECT p.id, p.background_image, 
                    COALESCE(json_agg(
@@ -49,14 +49,13 @@ exports.getNovelForPlay = async (req, res) => {
         res.json({ 
             pages,
             author_id: novelCheck[0].author_id,
-            tags: novelCheck[0].tags // ส่ง tags กลับไปด้วย
+            tags: novelCheck[0].tags 
         });
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// 4. บันทึก/อัปเดตนิยาย (สร้างใหม่ หรือ เขียนทับของเดิม)
+// 4. บันทึก/อัปเดตนิยาย
 exports.saveNovel = async (req, res) => {
-    // [แก้ไข] รับค่า cover_image และ tags เพิ่ม
     const { title, author_id, pages, novel_id, cover_image, tags } = req.body; 
     const client = await db.connect();
     
@@ -65,16 +64,12 @@ exports.saveNovel = async (req, res) => {
         let novelId = novel_id;
 
         if (novel_id) {
-            // --- กรณีอัปเดตเรื่องเดิม ---
-            // [แก้ไข] อัปเดต cover_image และ tags ด้วย
             await client.query(
                 'UPDATE novels SET title = $1, cover_image = $2, tags = $3 WHERE id = $4', 
                 [title, cover_image || null, tags || null, novelId]
             );
             await client.query('DELETE FROM chapters WHERE novel_id = $1', [novelId]);
         } else {
-            // --- กรณีสร้างเรื่องใหม่ ---
-            // [แก้ไข] เพิ่ม cover_image และ tags ตอน Insert
             const novelRes = await client.query(
                 'INSERT INTO novels (author_id, title, cover_emoji, cover_image, tags) VALUES ($1, $2, $3, $4, $5) RETURNING id', 
                 [author_id, title, '📖', cover_image || null, tags || null]
@@ -82,11 +77,9 @@ exports.saveNovel = async (req, res) => {
             novelId = novelRes.rows[0].id;
         }
         
-        // สร้าง Chapter เริ่มต้น
         const chapRes = await client.query('INSERT INTO chapters (novel_id, title, order_index) VALUES ($1, $2, $3) RETURNING id', [novelId, 'ตอนที่ 1', 1]);
         const chapterId = chapRes.rows[0].id;
 
-        // วนลูปบันทึกหน้า และ Object ลง Database
         for (let i = 0; i < pages.length; i++) {
             const page = pages[i];
             const pageRes = await client.query('INSERT INTO pages (chapter_id, background_image, order_index) VALUES ($1, $2, $3) RETURNING id', [chapterId, page.bg || null, i + 1]);
@@ -128,7 +121,6 @@ exports.addReview = async (req, res) => {
 exports.searchNovels = async (req, res) => {
     const { q } = req.query;
     try {
-        // [แก้ไข] ค้นหาจาก tags ด้วย
         const { rows } = await db.query(
             "SELECT * FROM novels WHERE title ILIKE $1 OR description ILIKE $1 OR tags ILIKE $1", 
             [`%${q}%`]

@@ -6,7 +6,7 @@ const ctrl = require('../controllers/novelController');
 // ==========================================
 
 router.get('/popular', ctrl.getPopular);                  // ดึงนิยายยอดนิยม
-router.get('/feed', ctrl.getFeedNovels);                  // [เพิ่มใหม่] ดึงนิยายแบบสุ่มสำหรับหน้าแรก
+router.get('/feed', ctrl.getFeedNovels);                  // ดึงนิยายแบบสุ่มสำหรับหน้าแรก (สำคัญ!)
 router.get('/play/:id', ctrl.getNovelForPlay);            // ดึงข้อมูลสำหรับหน้าเล่น
 router.post('/save', ctrl.saveNovel);                     // บันทึก/อัปเดตนิยาย
 router.post('/:id/review', ctrl.addReview);               // ให้คะแนน/รีวิว
