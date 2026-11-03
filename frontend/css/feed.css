@@ -11,61 +11,67 @@
 
 .feed-wrapper {
     position: absolute;
-    width: 150px;
-    height: 150px;
+    width: 160px; /* ขนาดพื้นที่สำหรับคลัสเตอร์ */
+    height: 160px;
     will-change: transform;
-}
-
-.feed-item {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.4);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
     cursor: pointer;
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s;
-}
-
-.feed-item:hover {
-    transform: scale(1.1);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
     z-index: 10;
 }
 
-.feed-item::before, .feed-item::after {
-    content: '';
-    position: absolute;
+/* ========================================== */
+/* [ใหม่] คลัสเตอร์ปกนิยาย */
+/* ========================================== */
+.feed-cluster {
     width: 100%;
     height: 100%;
-    border-radius: 20%;
-    transform: rotate(45deg);
-    border: 1px solid rgba(99, 102, 241, 0.3);
-    transition: transform 0.5s;
-}
-
-.feed-item::after {
-    transform: rotate(22.5deg);
-    border-color: rgba(236, 72, 153, 0.3);
-}
-
-.feed-item:hover::before { transform: rotate(60deg); }
-.feed-item:hover::after { transform: rotate(37.5deg); }
-
-.feed-text {
     position: relative;
-    z-index: 10;
-    font-size: 18px;
-    font-weight: 600;
-    background: linear-gradient(135deg, #1f2937, #4b5563);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    transition: transform 0.3s ease;
 }
+
+.feed-cluster:hover {
+    transform: scale(1.05); /* ขยายเล็กน้อยเมื่อเอาเมาส์ชี้ */
+}
+
+/* [ใหม่] การ์ดปกนิยาย */
+.feed-card {
+    position: absolute;
+    width: 110px;
+    height: 150px;
+    top: 5px;
+    left: 25px;
+    border-radius: 8px;
+    background-size: cover;
+    background-position: center;
+    background-color: #fff;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    border: 2px solid #fff;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform-origin: bottom center;
+}
+
+/* จัดเรียงการ์ด 3 ใบให้ซ้อนทับกันเป็นวงกลม-ish */
+.feed-card:nth-child(1) { z-index: 1; transform: rotate(-10deg) translateY(5px); }
+.feed-card:nth-child(2) { z-index: 2; transform: rotate(0deg) translateY(-5px); }
+.feed-card:nth-child(3) { z-index: 3; transform: rotate(10deg) translateY(5px); }
+
+/* ========================================== */
+/* [ใหม่] สถานะเมื่อกางออก (Expanded) */
+/* ========================================== */
+.feed-cluster.expanded .feed-card:nth-child(1) {
+    transform: rotate(-25deg) translate(-60px, 10px) scale(1.1);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+}
+
+.feed-cluster.expanded .feed-card:nth-child(2) {
+    transform: rotate(0deg) translate(0, -20px) scale(1.1);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+}
+
+.feed-cluster.expanded .feed-card:nth-child(3) {
+    transform: rotate(25deg) translate(60px, 10px) scale(1.1);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+}
+
 
 /* ========================================== */
 /* Chat Widget */
@@ -162,15 +168,11 @@
 
 /* สำหรับมือถือ (<= 768px) */
 @media (max-width: 768px) {
-    /* ย่อขนาดวงกลมฟีดลง 30% โดยใช้ scale (ไม่กระทบ JS) */
-    .feed-item {
-        transform: scale(0.7); 
+    /* ย่อขนาดคลัสเตอร์ลง */
+    .feed-wrapper {
+        transform: scale(0.8); /* ปรับขนาดใน JS ด้วยถ้าจำเป็น */
     }
     
-    .feed-item:hover {
-        transform: scale(0.8); /* ขยายนิดหน่อยเมื่อแตะ */
-    }
-
     /* ปรับกล่องแชทให้กว้างเกือบเต็มจอ และชิดขอบล่าง */
     #chat-widget {
         width: calc(100% - 30px);

@@ -3,11 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>สร้างนิยาย - VN Creator</title>
-    <!-- CSS หลัก -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/create.css">
-    
-    <!-- [เพิ่มใหม่] CSS สำหรับแบนเนอร์ Cookie -->
     <link rel="stylesheet" href="css/cookie-consent.css">
     
     <!-- Library สำหรับ Drag & Drop และ Cut Background -->
@@ -33,6 +30,23 @@
                 <option value="">-- สร้างเรื่องใหม่ --</option>
             </select>
 
+            <!-- [เพิ่มใหม่] ส่วนสำหรับอัปโหลดรูปปกและกรอกแท็ก -->
+            <div style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 10px;">
+                <label style="font-size:14px; color:#666; display:block; margin-bottom:5px;">รูปภาพปกเรื่อง:</label>
+                
+                <!-- ปุ่มสำหรับเปิดหน้าต่างอัปโหลด (รูปภาพจะถูกซ่อนไว้) -->
+                <input type="file" id="cover-input" accept="image/*" style="display:none;">
+                <button id="btn-upload-cover" style="width:100%; margin-bottom:8px; padding:8px; font-size:13px; background:#e2e8f0; border:none; border-radius:5px; cursor:pointer;">📸 อัปโหลดรูปปก</button>
+                
+                <!-- รูปภาพพรีวิว (ซ่อนไว้ก่อน ถ้ามีรูปค่อยแสดง) -->
+                <img id="cover-preview" src="" style="width: 100%; max-height: 120px; object-fit: cover; border-radius: 8px; display: none; margin-bottom: 10px;">
+
+                <label style="font-size:14px; color:#666; display:block; margin-bottom:5px;">แท็ก (คั่นด้วยจุลภาค):</label>
+                <!-- ช่องกรอกแท็ก (ไม่บังคับ) -->
+                <input type="text" id="input-tags" placeholder="เช่น fantasy, ต่อสู้, โรแมนติก" style="width:100%; padding:8px; border-radius:8px; border:1px solid #cbd5e1; font-family:'Prompt'; font-size:13px;">
+            </div>
+            <!-- ------------------------------------------------------- -->
+
             <button id="btn-add-character">+ เพิ่มตัวละคร</button>
             <button id="btn-add-dialogue">+ เพิ่มบทพูด</button>
             
@@ -52,14 +66,8 @@
     </div>
     
     <!-- ⚠️ ลำดับการโหลด Script สำคัญมาก ห้ามสลับ ⚠️ -->
-    
-    <!-- 1. โหลด config.js เป็นอันดับแรกเสมอ เพื่อให้ตัวแปร API พร้อมใช้งาน -->
     <script src="js/config.js"></script>
-    
-    <!-- 2. [เพิ่มใหม่] โหลดสคริปต์ Cookie Consent -->
     <script src="js/cookie-consent.js"></script>
-    
-    <!-- 3. โหลด create.js เป็นอันดับสุดท้าย (ตัวควบคุมหลัก) -->
     <script src="js/create.js"></script>
 </body>
 </html>

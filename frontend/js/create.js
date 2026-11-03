@@ -3,8 +3,9 @@ let currentPages = [];
 let currentPageIndex = 0;
 let currentNovelId = null; 
 let currentNovelTitle = ""; 
+let currentCoverUrl = ""; // เก็บ URL รูปปกปัจจุบัน
+let userNovelsList = [];  // เก็บรายชื่อนิยายทั้งหมดเพื่อดึงข้อมูลตอนเลือกเรื่องเดิม
 
-// ตรวจสอบว่ามีการโหลด config.js หรือยัง
 if (typeof API === 'undefined') {
     console.error("❌ ไม่พบตัวแปร API กรุณาตรวจสอบว่ามีการโหลด js/config.js ใน HTML หรือไม่");
 }
@@ -117,7 +118,7 @@ function createVisualObject(obj, index) {
 }
 
 // ==========================================
-// 4. ระบบอัปโหลด (สำหรับพื้นหลังและตัวละคร)
+// 4. ระบบอัปโหลด (พื้นหลัง/ตัวละคร)
 // ==========================================
 async function uploadAndRemoveBG(type) {
     const input = document.createElement('input');
@@ -129,16 +130,11 @@ async function uploadAndRemoveBG(type) {
         
         try {
             let finalBlob = file; 
-            
-            // ดักจับ Error เฉพาะตอนตัดพื้นหลังตัวละคร
             if(type === 'character' && typeof imglyRemoveBackground === 'function') {
                 try {
                     document.body.style.cursor = 'wait';
-                    console.log("กำลังตัดพื้นหลัง...");
                     finalBlob = await imglyRemoveBackground(file);
-                    console.log("ตัดพื้นหลังสำเร็จ");
                 } catch (bgError) {
-                    console.warn("⚠️ ไม่สามารถตัดพื้นหลังได้ (Browser บล็อก) จะใช้รูปต้นฉบับแทน:", bgError);
                     finalBlob = file; 
                 } finally {
                     document.body.style.cursor = 'default';
@@ -147,21 +143,12 @@ async function uploadAndRemoveBG(type) {
 
             const formData = new FormData();
             formData.append('image', finalBlob, type + '.png');
-            
-            console.log("กำลังอัปโหลดไปที่ Backend...");
             const res = await fetch(`${API}/upload`, { method: 'POST', body: formData });
-            
             if (!res.ok) throw new Error("เซิร์ฟเวอร์ปฏิเสธการอัปโหลด");
             
             const data = await res.json();
+            if (!data.url) throw new Error("ไม่ได้รับ URL");
 
-            if (!data.url) {
-                throw new Error("ไม่ได้รับ URL รูปภาพจากเซิร์ฟเวอร์");
-            }
-
-            console.log("อัปโหลดสำเร็จ ได้ URL:", data.url);
-
-            // เพิ่มลง State
             if (type === 'bg') {
                 currentPages[currentPageIndex].bg = data.url;
                 renderCanvas();
@@ -170,15 +157,13 @@ async function uploadAndRemoveBG(type) {
                 currentPages[currentPageIndex].objects.push({
                     type: type,
                     image: data.url,
-                    x: 100, 
-                    y: 100,
+                    x: 100, y: 100,
                     order: currentPages[currentPageIndex].objects.length + 1
                 });
                 renderCanvas();
             }
         } catch (err) {
             document.body.style.cursor = 'default';
-            console.error("Upload Error:", err);
             alert("❌ อัปโหลดล้มเหลว: " + err.message);
         }
     };
@@ -186,10 +171,42 @@ async function uploadAndRemoveBG(type) {
 }
 
 // ==========================================
-// 5. [เพิ่มใหม่] ระบบเพิ่มบทพูดโดยไม่ต้องอัปโหลด
+// 5. [เพิ่มใหม่] ระบบอัปโหลดรูปภาพปก
+// ==========================================
+document.getElementById('btn-upload-cover').addEventListener('click', () => {
+    document.getElementById('cover-input').click();
+});
+
+document.getElementById('cover-input').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        const res = await fetch(`${API}/upload`, { method: 'POST', body: formData });
+        if (!res.ok) throw new Error("อัปโหลดล้มเหลว");
+        
+        const data = await res.json();
+        if (!data.url) throw new Error("ไม่ได้รับ URL");
+
+        currentCoverUrl = data.url;
+        
+        // แสดงรูป Preview
+        const preview = document.getElementById('cover-preview');
+        preview.src = currentCoverUrl;
+        preview.style.display = 'block';
+
+    } catch (err) {
+        alert("❌ อัปโหลดรูปปกไม่สำเร็จ: " + err.message);
+    }
+});
+
+// ==========================================
+// 6. ระบบเพิ่มบทพูด
 // ==========================================
 function addNewDialogue() {
-    // สร้าง Object บทพูดเปล่าๆ ลงใน State
     const newObj = {
         type: 'dialogue',
         text: '',
@@ -197,16 +214,12 @@ function addNewDialogue() {
         y: 100,
         order: currentPages[currentPageIndex].objects.length + 1
     };
-    
-    // เพิ่มเข้าไปใน Array ของหน้าปัจจุบัน
     currentPages[currentPageIndex].objects.push(newObj);
-    
-    // วาด Canvas ใหม่เพื่อแสดงกล่องบทพูด
     renderCanvas();
 }
 
 // ==========================================
-// 6. ระบบโหลดเรื่องเดิม
+// 7. ระบบโหลดเรื่องเดิม
 // ==========================================
 async function loadUserNovels() {
     const user = JSON.parse(localStorage.getItem('user'));
@@ -219,6 +232,7 @@ async function loadUserNovels() {
         if(!select) return;
         
         select.innerHTML = '<option value="">-- สร้างเรื่องใหม่ --</option>';
+        userNovelsList = data.novels || []; // เก็บข้อมูลไว้ใช้ตอนเลือก
 
         if(data.novels) {
             data.novels.forEach(n => {
@@ -231,46 +245,51 @@ async function loadUserNovels() {
     } catch(e) { console.log("โหลดรายชื่อนิยายไม่ได้:", e); }
 }
 
-// ==========================================
-// 7. Event Handlers
-// ==========================================
-document.getElementById('btn-add-character').onclick = () => uploadAndRemoveBG('character');
-document.getElementById('btn-add-bg').onclick = () => uploadAndRemoveBG('bg');
-
-// [แก้ไข] ปุ่มเพิ่มบทพูดให้เรียกใช้ฟังก์ชันใหม่
-document.getElementById('btn-add-dialogue').onclick = addNewDialogue;
-
-document.getElementById('btn-add-page').addEventListener('click', addNewPage);
-
-document.getElementById('btn-play').addEventListener('click', () => {
-    if (!currentNovelId) {
-        alert("กรุณาบันทึกนิยายก่อนกดเล่นครับ");
-        return;
-    }
-    window.location.href = `play.html?id=${currentNovelId}`;
-});
-
 document.getElementById('select-existing-novel').addEventListener('change', async (e) => {
     const novelId = e.target.value;
     if(!novelId) {
+        // สร้างใหม่ (ล้างค่าเก่าทั้งหมด)
         currentNovelId = null;
         currentNovelTitle = "";
+        currentCoverUrl = "";
         currentPages = [];
+        document.getElementById('cover-preview').style.display = 'none';
+        document.getElementById('input-tags').value = "";
         addNewPage();
         return;
     }
     
     try {
         document.body.style.cursor = 'wait';
+        
+        // ดึงข้อมูลหน้าจาก API play
         const res = await fetch(`${API}/novels/play/${novelId}`);
         const data = await res.json();
-        
         if (!data.pages) throw new Error("ไม่พบข้อมูล");
         
         currentNovelId = novelId;
         const select = document.getElementById('select-existing-novel');
         currentNovelTitle = select.options[select.selectedIndex].text;
         
+        // ดึงข้อมูลปกและแท็กจากตัวแปร userNovelsList ที่โหลดไว้ตอนแรก
+        const selectedNovel = userNovelsList.find(n => n.id == novelId);
+        if (selectedNovel) {
+            currentCoverUrl = selectedNovel.cover_image || '';
+            
+            // แสดงรูปปก (ถ้ามี)
+            const preview = document.getElementById('cover-preview');
+            if (currentCoverUrl) {
+                preview.src = currentCoverUrl;
+                preview.style.display = 'block';
+            } else {
+                preview.style.display = 'none';
+            }
+            
+            // แสดงแท็ก (ถ้ามี)
+            document.getElementById('input-tags').value = selectedNovel.tags || '';
+        }
+        
+        // แปลงข้อมูลหน้า
         currentPages = data.pages.map(p => ({
             bg: p.background_image,
             objects: p.objects.map(o => ({
@@ -294,8 +313,21 @@ document.getElementById('select-existing-novel').addEventListener('change', asyn
 });
 
 // ==========================================
-// 8. ปุ่มบันทึก
+// 8. Event Handlers & Save
 // ==========================================
+document.getElementById('btn-add-character').onclick = () => uploadAndRemoveBG('character');
+document.getElementById('btn-add-bg').onclick = () => uploadAndRemoveBG('bg');
+document.getElementById('btn-add-dialogue').onclick = addNewDialogue;
+document.getElementById('btn-add-page').addEventListener('click', addNewPage);
+
+document.getElementById('btn-play').addEventListener('click', () => {
+    if (!currentNovelId) {
+        alert("กรุณาบันทึกนิยายก่อนกดเล่นครับ");
+        return;
+    }
+    window.location.href = `play.html?id=${currentNovelId}`;
+});
+
 document.getElementById('btn-save').addEventListener('click', async () => {
     const user = JSON.parse(localStorage.getItem('user'));
     if (!user) {
@@ -307,7 +339,18 @@ document.getElementById('btn-save').addEventListener('click', async () => {
     let title = prompt("ตั้งชื่อเรื่องของคุณ:", currentNovelId ? currentNovelTitle : "");
     if (!title) return;
 
-    const payload = { title: title, author_id: user.id, pages: currentPages };
+    // ดึงค่าแท็กจาก input
+    const tagsInput = document.getElementById('input-tags').value.trim();
+
+    // [แก้ไข] เพิ่ม cover_image และ tags ใน Payload
+    const payload = { 
+        title: title, 
+        author_id: user.id, 
+        pages: currentPages,
+        cover_image: currentCoverUrl || null,
+        tags: tagsInput || null
+    };
+    
     if(currentNovelId) payload.novel_id = currentNovelId; 
 
     try {
@@ -329,7 +372,7 @@ document.getElementById('btn-save').addEventListener('click', async () => {
             } else {
                 currentNovelId = data.novelId || currentNovelId;
                 currentNovelTitle = title;
-                loadUserNovels();
+                loadUserNovels(); // รีเฟรช Dropdown
             }
         } else {
             alert("Error: " + (data.error || "ไม่สามารถบันทึกได้"));
