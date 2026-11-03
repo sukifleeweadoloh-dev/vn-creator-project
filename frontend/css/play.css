@@ -40,8 +40,8 @@ body {
     bottom: 5%;
     left: 10%;
     width: 80%;
-    max-width: 1200px; /* [เพิ่มใหม่] จำกัดความกว้างสูงสุดสำหรับหน้าจอใหญ่ */
-    margin: 0 auto;    /* [เพิ่มใหม่] จัดกึ่งกลาง */
+    max-width: 1200px;
+    margin: 0 auto;
     background: rgba(15, 23, 42, 0.9);
     backdrop-filter: blur(8px);
     color: white;
@@ -51,7 +51,7 @@ body {
     line-height: 1.5;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     border: 1px solid rgba(255,255,255,0.2);
-    pointer-events: auto; /* ให้สามารถคลิกในกล่องได้ */
+    pointer-events: auto;
     text-align: center;
     animation: fadeIn 0.3s ease-out;
 }
@@ -64,17 +64,14 @@ body {
 /* ตัวละคร */
 .character-sprite {
     position: absolute;
-    /* [ลบออก] transform: translate(-50%, -50%); 
-       เพื่อให้ตำแหน่งตรงกับที่จัดวางในหน้า Editor */
     transition: transform 0.3s;
     filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5));
 }
 
-/* [เพิ่มใหม่] ควบคุมขนาดรูปภาพตัวละครให้ตรงกับหน้า Editor */
 .character-sprite img {
     max-height: 400px;
     object-fit: contain;
-    pointer-events: none; /* ให้คลิกโดนตัว div หลัก */
+    pointer-events: none;
 }
 
 /* Rating Box */
@@ -103,4 +100,67 @@ body {
 
 .star:hover {
     transform: scale(1.2);
+}
+
+
+/* ==========================================
+   Responsive Design (สำหรับมือถือและแท็บเล็ต)
+   ========================================== */
+
+/* สำหรับ iPad (<= 1024px) */
+@media (max-width: 1024px) {
+    .character-sprite img {
+        max-height: 300px; /* ลดขนาดตัวละครลง */
+    }
+    
+    .dialogue-box {
+        padding: 20px;
+        font-size: 20px;
+        width: 85%;
+        left: 7.5%;
+    }
+}
+
+/* สำหรับมือถือ (<= 768px) */
+@media (max-width: 768px) {
+    /* ปรับกล่องให้ดาวให้เล็กลงและไม่บังจอ */
+    #rating-box {
+        top: 10px;
+        right: 10px;
+        padding: 5px 10px;
+        gap: 5px;
+        flex-wrap: wrap; /* ให้ปุ่มตกลงมาได้ถ้าจอแคบมาก */
+        border-radius: 15px;
+    }
+
+    #rating-box span:first-child {
+        display: none; /* ซ่อนคำว่า "ให้คะแนน:" เพื่อประหยัดพื้นที่ */
+    }
+
+    .star {
+        font-size: 18px; /* ดาวเล็กลง */
+    }
+
+    /* ปุ่มติดตามเล็กลง */
+    .follow-btn {
+        padding: 5px 10px;
+        font-size: 12px;
+        margin-left: 5px;
+        min-width: 90px;
+    }
+
+    /* ลดขนาดตัวละครลงอีก */
+    .character-sprite img {
+        max-height: 250px; 
+    }
+
+    /* กล่องบทพูดกว้างขึ้น และตัวอักษรเล็กลง */
+    .dialogue-box {
+        bottom: 10%; /* ขยับขึ้นมานิดนึง เผื่อมีแถบมือถือ */
+        left: 5%;
+        width: 90%;
+        padding: 15px;
+        font-size: 18px;
+        border-radius: 10px;
+    }
 }

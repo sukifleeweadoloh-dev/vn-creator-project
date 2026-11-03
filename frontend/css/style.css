@@ -38,6 +38,8 @@ body {
     position: sticky;
     top: 0;
     z-index: 1000;
+    flex-wrap: wrap; /* ให้ปุ่มตกลงมาเมื่อจอเล็ก */
+    gap: 10px;
 }
 
 .nav-left, .nav-right {
@@ -84,4 +86,49 @@ body {
     height: 100%;
     padding: 40px;
     overflow-y: auto;
+}
+
+
+/* ==========================================
+   Responsive Design (สำหรับมือถือและแท็บเล็ต)
+   ========================================== */
+
+/* สำหรับ iPad และหน้าจอขนาดกลาง (<= 1024px) */
+@media (max-width: 1024px) {
+    .navbar { padding: 15px 20px; }
+    .nav-left, .nav-right { gap: 20px; }
+    #dynamic-view { padding: 25px; }
+}
+
+/* สำหรับมือถือ (<= 768px) */
+@media (max-width: 768px) {
+    .navbar {
+        padding: 10px 15px;
+        flex-direction: column; /* ให้เมนูซ้าย-ขวาเรียงลงมา */
+        gap: 10px;
+    }
+
+    .nav-left, .nav-right {
+        width: 100%;
+        justify-content: center; /* จัดเมนูกึ่งกลาง */
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .navbar a {
+        font-size: 14px; /* ลดขนาดตัวอักษรลง */
+    }
+
+    .btn-create {
+        padding: 6px 16px;
+        font-size: 14px;
+    }
+
+    #main-content {
+        height: calc(100vh - 110px); /* ลดความสูงลงเพราะ Navbar กินที่เพิ่ม */
+    }
+
+    #dynamic-view {
+        padding: 15px; /* ลด Padding ให้เนื้อหาเต็มจอ */
+    }
 }

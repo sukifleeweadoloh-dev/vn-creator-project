@@ -37,6 +37,7 @@ body {
     outline: none;
     font-family: 'Prompt';
     transition: 0.2s;
+    font-size: 16px; /* ป้องกัน iOS ซูมหน้าจอเมื่อกด input */
 }
 
 .auth-container input:focus {
@@ -72,4 +73,32 @@ body {
     color: var(--primary);
     text-decoration: none;
     font-weight: 600;
+}
+
+
+/* ==========================================
+   Responsive Design (สำหรับมือถือและแท็บเล็ต)
+   ========================================== */
+
+/* สำหรับมือถือ (<= 768px) */
+@media (max-width: 768px) {
+    body {
+        padding: 20px; /* เพิ่มระยะห่างจากขอบจอ */
+    }
+
+    .auth-container {
+        padding: 30px 20px; /* ลด Padding ลงเพื่อให้ไม่แน่นเกินไป */
+        border-radius: 15px;
+    }
+
+    .auth-container h2 {
+        font-size: 24px;
+        margin-bottom: 20px;
+    }
+
+    .auth-container input, 
+    .auth-container button {
+        padding: 12px; /* ลดความสูงของช่องกรอกลงเล็กน้อย */
+        font-size: 15px;
+    }
 }

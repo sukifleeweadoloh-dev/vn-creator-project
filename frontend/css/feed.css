@@ -68,7 +68,7 @@
 }
 
 /* ========================================== */
-/* Chat Widget (แก้ไขให้เปิด-ปิดได้) */
+/* Chat Widget */
 /* ========================================== */
 #chat-widget {
     position: fixed;
@@ -93,7 +93,7 @@
     font-weight: 500;
     font-size: 16px;
     margin: 0;
-    cursor: pointer; /* ทำให้รู้ว่ากดได้ */
+    cursor: pointer;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -112,13 +112,11 @@
     font-size: 14px;
 }
 
-/* [แก้ไข] ซ่อนส่วนเนื้อหาแชทไว้ก่อน */
 #chat-box, 
 #chat-widget .chat-input-group {
     display: none;
 }
 
-/* [แก้ไข] เมื่อมีคลาส .open ให้แสดงเนื้อหาแชท */
 #chat-widget.open #chat-box {
     display: block;
 }
@@ -150,4 +148,39 @@
 
 #chat-widget button:hover { 
     background: var(--primary-hover); 
+}
+
+
+/* ==========================================
+   Responsive Design (สำหรับมือถือและแท็บเล็ต)
+   ========================================== */
+
+/* สำหรับ iPad (<= 1024px) */
+@media (max-width: 1024px) {
+    /* ไม่มีการเปลี่ยนแปลงมากนักสำหรับหน้าหลักบน iPad */
+}
+
+/* สำหรับมือถือ (<= 768px) */
+@media (max-width: 768px) {
+    /* ย่อขนาดวงกลมฟีดลง 30% โดยใช้ scale (ไม่กระทบ JS) */
+    .feed-item {
+        transform: scale(0.7); 
+    }
+    
+    .feed-item:hover {
+        transform: scale(0.8); /* ขยายนิดหน่อยเมื่อแตะ */
+    }
+
+    /* ปรับกล่องแชทให้กว้างเกือบเต็มจอ และชิดขอบล่าง */
+    #chat-widget {
+        width: calc(100% - 30px);
+        max-width: 350px;
+        right: 15px;
+        bottom: 15px;
+    }
+
+    /* ลดความสูงกล่องแชทลงเพื่อไม่ให้บังหน้าจอ */
+    #chat-box {
+        height: 150px;
+    }
 }
