@@ -10,12 +10,11 @@ const app = express();
 // ==========================================
 // 1. ตั้งค่า CORS (ความปลอดภัย)
 // ==========================================
-// อนุญาตเฉพาะ Frontend ที่กำหนด (ใส่ URL ที่จะใช้ตอน Deploy หรือ Localhost)
 const allowedOrigins = [
     'http://localhost:5500', 
     'http://127.0.0.1:5500',
     'http://localhost:3000',
-    // 'https://your-frontend-domain.vercel.app' // <-- ใส่ URL จริงตอน Deploy
+    'https://vn-creator-project-frontend.vercel.app' // <-- เปลี่ยนเป็น URL Vercel ของคุณจริงๆ (ห้ามมี / ปิดท้าย)
 ];
 
 app.use(cors({
@@ -75,5 +74,6 @@ app.use('/api/users', require('./routes/user'));
 // ==========================================
 // 4. เริ่มต้น Server
 // ==========================================
+// ใช้ process.env.PORT สำหรับ Render (ถ้าไม่มีให้ใช้ 3000)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
