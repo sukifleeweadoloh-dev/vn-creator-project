@@ -1,0 +1,325 @@
+const canvas = document.getElementById('canvas');
+// ลบ const API = ... ออก เพราะดึงจาก config.js แล้ว
+let currentPages = []; 
+let currentPageIndex = 0;
+let currentNovelId = null; 
+let currentNovelTitle = ""; 
+
+// ตรวจสอบว่ามีการโหลด config.js หรือยัง
+if (typeof API === 'undefined') {
+    console.error("❌ ไม่พบตัวแปร API กรุณาตรวจสอบว่ามีการโหลด js/config.js ใน HTML หรือไม่");
+}
+
+// ==========================================
+// 1. ระบบเริ่มต้น
+// ==========================================
+function initEditor() {
+    if(currentPages.length === 0) addNewPage();
+    loadUserNovels();
+}
+
+// ==========================================
+// 2. ระบบจัดการหน้า
+// ==========================================
+function addNewPage() {
+    currentPages.push({ bg: null, objects: [] });
+    currentPageIndex = currentPages.length - 1;
+    renderCanvas();
+    updatePageList();
+}
+
+function switchPage(index) {
+    currentPageIndex = index;
+    renderCanvas();
+    updatePageList();
+}
+
+function updatePageList() {
+    const listContainer = document.getElementById('page-list');
+    if(!listContainer) return;
+    
+    listContainer.innerHTML = '';
+    currentPages.forEach((page, index) => {
+        const thumb = document.createElement('div');
+        thumb.className = `page-thumb ${index === currentPageIndex ? 'active' : ''}`;
+        thumb.onclick = () => switchPage(index);
+        
+        thumb.innerHTML = `
+            <div style="width:100%; height:100%; background: ${page.bg ? `url(${page.bg}) center/cover` : '#333'};"></div>
+            <span style="position:absolute; bottom:2px; right:5px; color:#fff; font-size:12px; background:rgba(0,0,0,0.5); padding:2px 5px; border-radius:5px;">${index + 1}</span>
+        `;
+        listContainer.appendChild(thumb);
+    });
+}
+
+// ==========================================
+// 3. ระบบวาด Canvas
+// ==========================================
+function renderCanvas() {
+    const page = currentPages[currentPageIndex];
+    if (!page) return;
+    
+    canvas.innerHTML = '';
+    canvas.style.backgroundImage = page.bg ? `url(${page.bg})` : 'none';
+    canvas.style.backgroundColor = '#000'; 
+
+    if (page.objects && Array.isArray(page.objects)) {
+        page.objects.forEach((obj, index) => {
+            try {
+                createVisualObject(obj, index);
+            } catch (error) {
+                console.error("เกิดข้อผิดพลาดในการวาด Object:", error);
+            }
+        });
+    }
+}
+
+function createVisualObject(obj, index) {
+    const div = document.createElement('div');
+    div.className = 'draggable-obj';
+    div.style.position = 'absolute';
+    div.style.transform = `translate(${obj.x}px, ${obj.y}px)`;
+    div.setAttribute('data-x', obj.x);
+    div.setAttribute('data-y', obj.y);
+    
+    if (obj.type === 'dialogue') {
+        div.style.zIndex = 100; 
+        div.innerHTML = `<div class="dialogue-obj"><textarea class="dialog-text" placeholder="พิมพ์บทพูด...">${obj.text || ''}</textarea></div>`;
+        const textarea = div.querySelector('textarea');
+        if(textarea) {
+            textarea.addEventListener('input', (e) => { obj.text = e.target.value; });
+        }
+    } else {
+        div.style.zIndex = 10; 
+        const imgSrc = obj.image ? obj.image : 'https://via.placeholder.com/150?text=No+Image';
+        div.innerHTML = `<img src="${imgSrc}" style="width:100%; pointer-events:none;">`;
+    }
+    
+    canvas.appendChild(div);
+
+    if (typeof interact !== 'undefined') {
+        interact(div).draggable({
+            listeners: {
+                move(event) {
+                    const target = event.target;
+                    const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+                    const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+                    
+                    target.style.transform = `translate(${x}px, ${y}px)`;
+                    target.setAttribute('data-x', x);
+                    target.setAttribute('data-y', y);
+                    
+                    obj.x = x;
+                    obj.y = y;
+                }
+            }
+        });
+    }
+}
+
+// ==========================================
+// 4. ระบบอัปโหลด (ดัก Error ตัดพื้นหลัง)
+// ==========================================
+async function uploadAndRemoveBG(type) {
+    const input = document.createElement('input');
+    input.type = 'file'; 
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        try {
+            let finalBlob = file; // ค่าเริ่มต้นคือใช้รูปต้นฉบับ
+            
+            // ดักจับ Error เฉพาะตอนตัดพื้นหลัง (ถ้า Browser บล็อก)
+            if(type === 'character' && typeof imglyRemoveBackground === 'function') {
+                try {
+                    document.body.style.cursor = 'wait';
+                    console.log("กำลังตัดพื้นหลัง...");
+                    finalBlob = await imglyRemoveBackground(file);
+                    console.log("ตัดพื้นหลังสำเร็จ");
+                } catch (bgError) {
+                    console.warn("⚠️ ไม่สามารถตัดพื้นหลังได้ (Browser บล็อก) จะใช้รูปต้นฉบับแทน:", bgError);
+                    finalBlob = file; 
+                } finally {
+                    document.body.style.cursor = 'default';
+                }
+            }
+
+            const formData = new FormData();
+            formData.append('image', finalBlob, type + '.png');
+            
+            console.log("กำลังอัปโหลดไปที่ Backend...");
+            const res = await fetch(`${API}/upload`, { method: 'POST', body: formData });
+            
+            if (!res.ok) throw new Error("เซิร์ฟเวอร์ปฏิเสธการอัปโหลด");
+            
+            const data = await res.json();
+
+            if (!data.url) {
+                throw new Error("ไม่ได้รับ URL รูปภาพจากเซิร์ฟเวอร์");
+            }
+
+            console.log("อัปโหลดสำเร็จ ได้ URL:", data.url);
+
+            // เพิ่มลง State
+            if (type === 'bg') {
+                currentPages[currentPageIndex].bg = data.url;
+                renderCanvas();
+                updatePageList();
+            } else {
+                currentPages[currentPageIndex].objects.push({
+                    type: type,
+                    image: data.url,
+                    x: 100, 
+                    y: 100,
+                    order: currentPages[currentPageIndex].objects.length + 1
+                });
+                renderCanvas();
+            }
+        } catch (err) {
+            document.body.style.cursor = 'default';
+            console.error("Upload Error:", err);
+            alert("❌ อัปโหลดล้มเหลว: " + err.message);
+        }
+    };
+    input.click();
+}
+
+// ==========================================
+// 5. ระบบโหลดเรื่องเดิม
+// ==========================================
+async function loadUserNovels() {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user) return;
+
+    try {
+        const res = await fetch(`${API}/users/profile/${user.id}`);
+        const data = await res.json();
+        const select = document.getElementById('select-existing-novel');
+        if(!select) return;
+        
+        select.innerHTML = '<option value="">-- สร้างเรื่องใหม่ --</option>';
+
+        if(data.novels) {
+            data.novels.forEach(n => {
+                const opt = document.createElement('option');
+                opt.value = n.id;
+                opt.innerText = n.title;
+                select.appendChild(opt);
+            });
+        }
+    } catch(e) { console.log("โหลดรายชื่อนิยายไม่ได้:", e); }
+}
+
+// ==========================================
+// 6. Event Handlers
+// ==========================================
+document.getElementById('btn-add-character').onclick = () => uploadAndRemoveBG('character');
+document.getElementById('btn-add-dialogue').onclick = () => uploadAndRemoveBG('dialogue');
+document.getElementById('btn-add-bg').onclick = () => uploadAndRemoveBG('bg');
+document.getElementById('btn-add-page').addEventListener('click', addNewPage);
+
+document.getElementById('btn-play').addEventListener('click', () => {
+    if (!currentNovelId) {
+        alert("กรุณาบันทึกนิยายก่อนกดเล่นครับ");
+        return;
+    }
+    window.location.href = `play.html?id=${currentNovelId}`;
+});
+
+document.getElementById('select-existing-novel').addEventListener('change', async (e) => {
+    const novelId = e.target.value;
+    if(!novelId) {
+        currentNovelId = null;
+        currentNovelTitle = "";
+        currentPages = [];
+        addNewPage();
+        return;
+    }
+    
+    try {
+        document.body.style.cursor = 'wait';
+        const res = await fetch(`${API}/novels/play/${novelId}`);
+        const data = await res.json();
+        
+        if (!data.pages) throw new Error("ไม่พบข้อมูล");
+        
+        currentNovelId = novelId;
+        const select = document.getElementById('select-existing-novel');
+        currentNovelTitle = select.options[select.selectedIndex].text;
+        
+        currentPages = data.pages.map(p => ({
+            bg: p.background_image,
+            objects: p.objects.map(o => ({
+                type: o.type,
+                image: o.image,
+                text: o.text,
+                x: o.x,
+                y: o.y,
+                order: o.order
+            }))
+        }));
+
+        currentPageIndex = 0;
+        renderCanvas();
+        updatePageList();
+    } catch(err) {
+        alert("โหลดข้อมูลเรื่องเดิมไม่สำเร็จ");
+    } finally {
+        document.body.style.cursor = 'default';
+    }
+});
+
+// ==========================================
+// 7. ปุ่มบันทึก
+// ==========================================
+document.getElementById('btn-save').addEventListener('click', async () => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user) {
+        alert("กรุณาเข้าสู่ระบบก่อนบันทึกนิยาย");
+        window.location.href = 'login.html';
+        return;
+    }
+
+    let title = prompt("ตั้งชื่อเรื่องของคุณ:", currentNovelId ? currentNovelTitle : "");
+    if (!title) return;
+
+    const payload = { title: title, author_id: user.id, pages: currentPages };
+    if(currentNovelId) payload.novel_id = currentNovelId; 
+
+    try {
+        const btn = document.getElementById('btn-save');
+        btn.innerText = "กำลังบันทึก...";
+        btn.disabled = true;
+
+        const res = await fetch(`${API}/novels/save`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        
+        if(res.ok) {
+            alert("บันทึกสำเร็จ!");
+            if(!currentNovelId) {
+                window.location.href = `play.html?id=${data.novelId}`;
+            } else {
+                currentNovelId = data.novelId || currentNovelId;
+                currentNovelTitle = title;
+                loadUserNovels();
+            }
+        } else {
+            alert("Error: " + (data.error || "ไม่สามารถบันทึกได้"));
+        }
+    } catch(err) { 
+        alert("เซิร์ฟเวอร์ไม่ตอบสนอง"); 
+    } finally { 
+        const btn = document.getElementById('btn-save');
+        btn.innerText = "💾 บันทึก"; 
+        btn.disabled = false;
+    }
+});
+
+// เริ่มระบบ
+initEditor();

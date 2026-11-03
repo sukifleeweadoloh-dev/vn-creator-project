@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>อ่านนิยาย - VN Creator</title>
+    
+    <!-- ฟอนต์ -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- เชื่อมต่อ CSS หลักและ CSS ของหน้าอ่าน -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/play.css">
+    
+    <!-- [เพิ่มใหม่] CSS สำหรับแบนเนอร์ Cookie -->
+    <link rel="stylesheet" href="css/cookie-consent.css">
+    
+    <style>
+        /* สไตล์สำหรับปุ่มติดตาม */
+        .follow-btn {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-left: 15px;
+            transition: background 0.3s, transform 0.2s, opacity 0.2s;
+            font-family: 'Prompt', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            min-width: 120px;
+            justify-content: center;
+        }
+
+        .follow-btn:hover:not(:disabled) {
+            background: #4f46e5;
+            transform: scale(1.05);
+        }
+        
+        .follow-btn:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+
+        /* สถานะ Loading (กำลังโหลด) */
+        .follow-btn.loading {
+            background: #94a3b8;
+            cursor: wait;
+        }
+
+        /* สถานะติดตามแล้ว (สีเขียว) */
+        .follow-btn.followed {
+            background: #10b981;
+            cursor: default;
+        }
+        .follow-btn.followed:hover {
+            transform: none;
+            background: #10b981;
+        }
+
+        /* ซ่อนปุ่มเมื่อไม่ควรแสดง */
+        .follow-btn.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- พื้นที่แสดงผลหลัก (คลิกเพื่อไปบทพูดถัดไป) -->
+    <div id="reader-container">
+        
+        <!-- เลเยอร์สำหรับแสดงตัวละคร (z-index ต่ำ) -->
+        <div id="page-layer"></div>
+        
+        <!-- เลเยอร์สำหรับแสดงบทพูด (z-index สูง) -->
+        <div id="dialogue-layer"></div>
+        
+        <!-- UI ด้านขวาบน: ระบบให้ดาว + ปุ่มติดตาม -->
+        <div id="rating-box">
+            <span style="font-size: 14px; margin-right: 5px;">ให้คะแนน:</span>
+            
+            <!-- ดาว 5 ดวง -->
+            <span class="star" onclick="rate(1)">☆</span>
+            <span class="star" onclick="rate(2)">☆</span>
+            <span class="star" onclick="rate(3)">☆</span>
+            <span class="star" onclick="rate(4)">☆</span>
+            <span class="star" onclick="rate(5)">☆</span>
+
+            <!-- ปุ่มติดตามผู้เขียน -->
+            <button class="follow-btn loading" id="btn-follow-author" data-following="false" disabled>
+                <span>⏳</span> กำลังโหลด...
+            </button>
+        </div>
+
+        <!-- ปุ่มกลับหน้าหลัก (มุมซ้ายบน) -->
+        <a href="index.html" style="position: absolute; top: 20px; left: 20px; color: white; text-decoration: none; background: rgba(0,0,0,0.5); padding: 8px 16px; border-radius: 20px; backdrop-filter: blur(5px); z-index: 1000;">
+            🏠 กลับหน้าหลัก
+        </a>
+
+    </div>
+
+    <!-- ⚠️ ลำดับการโหลด Script ⚠️ -->
+    
+    <!-- 1. โหลด config.js เป็นอันดับแรกเสมอ เพื่อให้ตัวแปร API พร้อมใช้งาน -->
+    <script src="js/config.js"></script>
+    
+    <!-- 2. โหลดสคริปต์ Cookie Consent -->
+    <script src="js/cookie-consent.js"></script>
+    
+    <!-- 3. โหลด play.js เป็นอันดับสุดท้าย (ตัวควบคุมหลักของหน้านี้) -->
+    <script src="js/play.js"></script>
+</body>
+</html>

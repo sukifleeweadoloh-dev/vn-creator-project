@@ -1,0 +1,102 @@
+/* ========================================== */
+/* สไตล์สำหรับแบนเนอร์ขออนุญาต Cookie */
+/* ========================================== */
+
+#cookie-consent-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.95); /* สีขาวโปร่งแสง */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+    border-top: 1px solid #e2e8f0;
+    padding: 20px;
+    z-index: 9999; /* ให้อยู่บนสุดเสมอ */
+    display: flex;
+    justify-content: center;
+    animation: slideUpBanner 0.5s ease-out;
+}
+
+@keyframes slideUpBanner {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.cookie-content {
+    max-width: 1000px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.cookie-content p {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text-dark, #1e293b);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.cookie-buttons {
+    display: flex;
+    gap: 15px;
+    flex-shrink: 0;
+}
+
+/* สไตล์ปุ่ม */
+.cookie-buttons button {
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-family: 'Prompt', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.2s;
+    border: none;
+}
+
+/* ปุ่มยอมรับ */
+.btn-accept {
+    background: var(--primary, #6366f1);
+    color: white;
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+}
+
+.btn-accept:hover {
+    background: var(--primary-hover, #4f46e5);
+    transform: translateY(-2px);
+}
+
+/* ปุ่มปฏิเสธ */
+.btn-decline {
+    background: #f1f5f9;
+    color: var(--text-light, #64748b);
+    border: 1px solid #cbd5e1;
+}
+
+.btn-decline:hover {
+    background: #e2e8f0;
+    color: var(--text-dark, #1e293b);
+}
+
+/* --- Responsive สำหรับมือถือ --- */
+@media (max-width: 768px) {
+    .cookie-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .cookie-buttons {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .cookie-buttons button {
+        flex: 1;
+    }
+}

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เข้าสู่ระบบ - VN Creator</title>
+    
+    <!-- ฟอนต์ -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- โหลด style.css เพื่อใช้ตัวแปรสี และ auth.css สำหรับจัดหน้าฟอร์ม -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+    
+    <!-- [เพิ่มใหม่] CSS สำหรับแบนเนอร์ Cookie -->
+    <link rel="stylesheet" href="css/cookie-consent.css">
+</head>
+<body>
+
+    <div class="auth-container">
+        <h2>เข้าสู่ระบบ</h2>
+        
+        <!-- ฟอร์มล็อกอิน -->
+        <form id="login-form">
+            <input type="email" id="email" placeholder="อีเมล" required>
+            <input type="password" id="password" placeholder="รหัสผ่าน" required>
+            
+            <button type="submit">เข้าสู่ระบบ</button>
+        </form>
+        
+        <!-- ข้อความแจ้งเตือน -->
+        <p id="error-msg" style="color: #ef4444; font-size: 14px; margin-top: 10px;"></p>
+        
+        <!-- ลิงก์ -->
+        <p>ยังไม่มีบัญชี? <a href="register.html">สมัครสมาชิก</a></p>
+        <p style="margin-top: 15px;"><a href="index.html" style="color: #64748b; font-size: 13px; text-decoration: none;">← กลับหน้าหลัก</a></p>
+    </div>
+
+    <!-- ⚠️ ลำดับการโหลด Script ⚠️ -->
+    
+    <!-- 1. โหลด config.js เป็นอันดับแรกเสมอ เพื่อให้ตัวแปร API พร้อมใช้งาน -->
+    <script src="js/config.js"></script>
+    
+    <!-- 2. โหลดสคริปต์ Cookie Consent -->
+    <script src="js/cookie-consent.js"></script>
+    
+    <!-- 3. โหลด auth.js เป็นอันดับสุดท้าย (ตัวควบคุมหลักของหน้านี้) -->
+    <script src="js/auth.js"></script>
+</body>
+</html>

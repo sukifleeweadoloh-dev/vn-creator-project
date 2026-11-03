@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>VN Creator - Home</title>
+    <!-- CSS หลัก -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/feed.css">
+    
+    <!-- [เพิ่มใหม่] CSS สำหรับแบนเนอร์ Cookie -->
+    <link rel="stylesheet" href="css/cookie-consent.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="#" class="nav-link active" data-target="home">หน้าหลัก</a>
+            <a href="#" class="nav-link" data-target="search">ค้นหา</a>
+            <a href="#" class="nav-link" data-target="popular">นิยม</a>
+            <a href="#" class="nav-link" data-target="following">ติดตาม</a>
+        </div>
+        <div class="nav-right">
+            <a href="create.html" class="btn-create">สร้าง</a>
+            <a href="#" class="nav-link" data-target="profile">โปรไฟล์</a>
+            <a href="#" id="btn-logout" style="color: #ef4444; display: none;">ออกจากระบบ</a>
+        </div>
+    </nav>
+    
+    <div id="main-content">
+        <div class="feed-container" id="feed-container"></div>
+        <div id="dynamic-view" style="display:none; padding: 50px;"></div>
+    </div>
+
+    <!-- Chat Widget -->
+    <div id="chat-widget">
+        <h4>ติดต่อแอดมิน</h4>
+        <div id="chat-box"></div>
+        <div class="chat-input-group">
+            <input type="text" id="chat-input" placeholder="พิมพ์ข้อความ...">
+            <button id="btn-send-chat">ส่ง</button>
+        </div>
+    </div>
+
+    <!-- ⚠️ ลำดับการโหลด Script สำคัญมาก ห้ามสลับ ⚠️ -->
+    
+    <!-- 1. โหลด config.js เป็นอันดับแรกเสมอ เพื่อให้ตัวแปร API พร้อมใช้งาน -->
+    <script src="js/config.js"></script>
+    
+    <!-- 2. โหลด views และ feed (ตัวช่วยและแอนิเมชัน) -->
+    <script src="js/views.js"></script>
+    <script src="js/feed.js"></script>
+    
+    <!-- 3. [เพิ่มใหม่] โหลดสคริปต์ Cookie Consent -->
+    <script src="js/cookie-consent.js"></script>
+    
+    <!-- 4. โหลด app.js เป็นอันดับสุดท้าย (ตัวควบคุมหลัก) -->
+    <script src="js/app.js"></script>
+</body>
+</html>

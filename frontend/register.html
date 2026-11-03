@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สมัครสมาชิก - VN Creator</title>
+    
+    <!-- ฟอนต์ -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- CSS หลักและหน้า Auth -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+    
+    <!-- [เพิ่มใหม่] CSS สำหรับแบนเนอร์ Cookie -->
+    <link rel="stylesheet" href="css/cookie-consent.css">
+</head>
+<body>
+
+    <div class="auth-container">
+        <h2>สมัครสมาชิก</h2>
+        
+        <!-- ฟอร์มสมัครสมาชิก -->
+        <form id="register-form">
+            <input type="text" id="username" placeholder="ชื่อผู้ใช้ (ห้ามซ้ำ)" required>
+            <input type="email" id="email" placeholder="อีเมล (ห้ามซ้ำ)" required>
+            <input type="password" id="password" placeholder="รหัสผ่าน (8 ตัวอักษรขึ้นไป)" required>
+            
+            <button type="submit">สมัครสมาชิก</button>
+        </form>
+        
+        <!-- ข้อความแจ้งเตือน -->
+        <p id="error-msg" style="color: #ef4444; font-size: 14px; margin-top: 10px;"></p>
+        
+        <!-- ลิงก์ -->
+        <p>มีบัญชีอยู่แล้ว? <a href="login.html">เข้าสู่ระบบ</a></p>
+        <p style="margin-top: 15px;"><a href="index.html" style="color: #64748b; font-size: 13px; text-decoration: none;">← กลับหน้าหลัก</a></p>
+    </div>
+
+    <!-- ⚠️ ลำดับการโหลด Script ⚠️ -->
+    
+    <!-- 1. โหลด config.js เป็นอันดับแรกเสมอ เพื่อให้ตัวแปร API พร้อมใช้งาน -->
+    <script src="js/config.js"></script>
+    
+    <!-- 2. โหลดสคริปต์ Cookie Consent -->
+    <script src="js/cookie-consent.js"></script>
+    
+    <!-- 3. โหลด auth.js เป็นอันดับสุดท้าย (ตัวควบคุมหลักของหน้านี้) -->
+    <script src="js/auth.js"></script>
+</body>
+</html>

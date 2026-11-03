@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>สร้างนิยาย - VN Creator</title>
+    <!-- CSS หลัก -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/create.css">
+    
+    <!-- [เพิ่มใหม่] CSS สำหรับแบนเนอร์ Cookie -->
+    <link rel="stylesheet" href="css/cookie-consent.css">
+    
+    <!-- Library สำหรับ Drag & Drop และ Cut Background -->
+    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/dist/browser.js"></script>
+</head>
+<body>
+    <!-- แถบด้านบน -->
+    <div class="top-bar">
+        <a href="index.html">🏠 กลับหน้าหลัก</a>
+        <div style="display:flex; gap:10px;">
+            <button id="btn-add-bg">🖼️ เพิ่มพื้นหลัง</button>
+            <button id="btn-save">💾 บันทึก</button>
+            <button id="btn-play">▶️ เล่น/อ่าน</button>
+        </div>
+    </div>
+
+    <div class="editor-container">
+        <!-- Sidebar ซ้าย -->
+        <div class="sidebar">
+            <label style="font-size:14px; color:#666;">เลือกเรื่องที่จะแก้ไข:</label>
+            <select id="select-existing-novel" style="padding:8px; border-radius:8px; margin-bottom:10px;">
+                <option value="">-- สร้างเรื่องใหม่ --</option>
+            </select>
+
+            <button id="btn-add-character">+ เพิ่มตัวละคร</button>
+            <button id="btn-add-dialogue">+ เพิ่มบทพูด</button>
+            
+            <hr>
+            
+            <!-- รายการหน้า (Thumbnails) -->
+            <div id="page-list"></div>
+            
+            <!-- ปุ่มเพิ่มหน้าใหม่ -->
+            <button id="btn-add-page">+ เพิ่มหน้าใหม่</button>
+        </div>
+
+        <!-- Canvas ตรงกลาง (พื้นที่ทำงาน) -->
+        <div class="canvas" id="canvas">
+            <!-- Object ตัวละครและบทพูดจะถูกสร้างที่นี่โดย JS -->
+        </div>
+    </div>
+    
+    <!-- ⚠️ ลำดับการโหลด Script สำคัญมาก ห้ามสลับ ⚠️ -->
+    
+    <!-- 1. โหลด config.js เป็นอันดับแรกเสมอ เพื่อให้ตัวแปร API พร้อมใช้งาน -->
+    <script src="js/config.js"></script>
+    
+    <!-- 2. [เพิ่มใหม่] โหลดสคริปต์ Cookie Consent -->
+    <script src="js/cookie-consent.js"></script>
+    
+    <!-- 3. โหลด create.js เป็นอันดับสุดท้าย (ตัวควบคุมหลัก) -->
+    <script src="js/create.js"></script>
+</body>
+</html>
