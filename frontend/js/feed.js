@@ -18,6 +18,7 @@ class Feed {
         
         // สถานะเริ่มต้น
         this.isExpanded = false;
+        this.timeoutId = null; // [เพิ่มใหม่] เก็บ ID ของตัวจับเวลา
 
         // 1. สร้างการ์ดปกนิยาย 3 ใบ
         novels.forEach((novel, index) => {
@@ -30,14 +31,12 @@ class Feed {
                 card.innerHTML = `<div style="display:flex; justify-content:center; align-items:center; height:100%; font-size:50px;">${novel.cover_emoji || '📖'}</div>`;
             }
             
-            // [แก้ไข] Logic การคลิกการ์ด
+            // Logic การคลิกการ์ด
             card.onclick = (e) => {
                 if (this.isExpanded) {
-                    // ถ้ากางออกแล้ว ให้หยุด Event ไม่ให้ส่งต่อไปที่กลุ่ม และเข้าสู่หน้าเล่น
                     e.stopPropagation(); 
                     window.location.href = `play.html?id=${novel.id}`;
                 }
-                // ถ้ายังไม่กาง ให้ปล่อย Event ไปให้ตัวกลุ่ม (this.cluster) จัดการกางออก
             };
             
             this.cluster.appendChild(card);
@@ -55,20 +54,38 @@ class Feed {
 
         // [แก้ไข] Logic การคลิกที่กลุ่ม (เพื่อกาง/หุบ)
         this.cluster.onclick = () => {
-            this.isExpanded = !this.isExpanded;
-            if (this.isExpanded) {
+            // ล้างเวลาที่ตั้งไว้ก่อนหน้าเสมอ (ถ้ามี)
+            if (this.timeoutId) clearTimeout(this.timeoutId);
+
+            if (!this.isExpanded) {
+                // --- กางออก ---
+                this.isExpanded = true;
                 this.cluster.classList.add('expanded');
-                // หยุดการเคลื่อนที่ชั่วคราว
                 this.vx = 0;
                 this.vy = 0;
+
+                // [เพิ่มใหม่] ตั้งเวลาหุบกลับอัตโนมัติใน 60 วินาที (60000 ms)
+                this.timeoutId = setTimeout(() => {
+                    this.collapse();
+                }, 60000);
+
             } else {
-                this.cluster.classList.remove('expanded');
-                // กลับมาเคลื่อนที่
-                this.vx = getRandom(-1.5, -0.6); 
+                // --- หุบกลับ (กรณีคลิกเอง) ---
+                this.collapse();
             }
         };
 
         this.updatePosition();
+    }
+
+    // [เพิ่มใหม่] ฟังก์ชันสำหรับหุบกลับและเริ่มลอยใหม่
+    collapse() {
+        this.isExpanded = false;
+        this.cluster.classList.remove('expanded');
+        // กลับมาเคลื่อนที่
+        this.vx = getRandom(-1.5, -0.6); 
+        this.vy = getRandom(-1, 1);
+        this.timeoutId = null;
     }
 
     updatePosition() {
