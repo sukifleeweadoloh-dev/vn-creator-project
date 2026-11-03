@@ -3,11 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>VN Creator - Home</title>
-    <!-- CSS หลัก -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/feed.css">
-    
-    <!-- [เพิ่มใหม่] CSS สำหรับแบนเนอร์ Cookie -->
     <link rel="stylesheet" href="css/cookie-consent.css">
 </head>
 <body>
@@ -32,7 +29,11 @@
 
     <!-- Chat Widget -->
     <div id="chat-widget">
-        <h4>ติดต่อแอดมิน</h4>
+        <!-- [แก้ไข] เพิ่มไอคอนลูกศรชี้ลง (▼) เพื่อบอกให้รู้ว่ากดเปิดได้ -->
+        <h4 id="chat-header">
+            <span>ติดต่อแอดมิน</span>
+            <span id="chat-toggle-icon" style="font-size: 12px;">▼</span>
+        </h4>
         <div id="chat-box"></div>
         <div class="chat-input-group">
             <input type="text" id="chat-input" placeholder="พิมพ์ข้อความ...">
@@ -40,19 +41,11 @@
         </div>
     </div>
 
-    <!-- ⚠️ ลำดับการโหลด Script สำคัญมาก ห้ามสลับ ⚠️ -->
-    
-    <!-- 1. โหลด config.js เป็นอันดับแรกเสมอ เพื่อให้ตัวแปร API พร้อมใช้งาน -->
+    <!-- โหลด Script ตามลำดับที่ถูกต้อง -->
     <script src="js/config.js"></script>
-    
-    <!-- 2. โหลด views และ feed (ตัวช่วยและแอนิเมชัน) -->
     <script src="js/views.js"></script>
     <script src="js/feed.js"></script>
-    
-    <!-- 3. [เพิ่มใหม่] โหลดสคริปต์ Cookie Consent -->
     <script src="js/cookie-consent.js"></script>
-    
-    <!-- 4. โหลด app.js เป็นอันดับสุดท้าย (ตัวควบคุมหลัก) -->
     <script src="js/app.js"></script>
 </body>
 </html>

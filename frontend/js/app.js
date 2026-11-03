@@ -4,7 +4,6 @@
 function initApp() {
     console.log("✅ app.js เริ่มทำงาน");
     
-    // ลบ const API = ... ออก เพราะเราดึงค่าจาก config.js แล้ว (Global Variable)
     // ตรวจสอบว่ามีการโหลด config.js หรือยัง
     if (typeof API === 'undefined') {
         console.error("❌ ไม่พบตัวแปร API กรุณาตรวจสอบว่ามีการโหลด js/config.js ใน HTML หรือไม่");
@@ -31,6 +30,27 @@ function initApp() {
     const feedContainer = document.getElementById('feed-container');
 
     console.log(`📌 พบปุ่มเมนู ${navLinks.length} ปุ่ม`);
+
+    // ------------------------------------------
+    // [เพิ่มใหม่] ระบบ เปิด-ปิด กล่องแชท (Chat Toggle)
+    // ------------------------------------------
+    const chatWidget = document.getElementById('chat-widget');
+    const chatHeader = document.getElementById('chat-header');
+    const chatToggleIcon = document.getElementById('chat-toggle-icon');
+
+    if (chatHeader && chatWidget && chatToggleIcon) {
+        chatHeader.addEventListener('click', () => {
+            // สลับคลาส .open เพื่อเปิด/ปิด
+            chatWidget.classList.toggle('open');
+            
+            // เปลี่ยนไอคอนลูกศรตามสถานะ
+            if (chatWidget.classList.contains('open')) {
+                chatToggleIcon.innerText = '▲'; // ลูกศรชี้ขึ้น (เปิดอยู่)
+            } else {
+                chatToggleIcon.innerText = '▼'; // ลูกศรชี้ลง (ปิดอยู่)
+            }
+        });
+    }
 
     // ------------------------------------------
     // ฟังก์ชันสลับหน้า (SPA)
@@ -179,7 +199,7 @@ function initApp() {
     };
 
     // ------------------------------------------
-    // ระบบแชท
+    // ระบบแชท (โหลดข้อความ)
     // ------------------------------------------
     function loadChat() {
         if (!document.getElementById('chat-box')) return;

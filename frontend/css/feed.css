@@ -68,7 +68,7 @@
 }
 
 /* ========================================== */
-/* Chat Widget (แก้ไขให้เรียงกันสวยงามด้วย Flexbox) */
+/* Chat Widget (แก้ไขให้เปิด-ปิดได้) */
 /* ========================================== */
 #chat-widget {
     position: fixed;
@@ -83,6 +83,7 @@
     border: 1px solid #e2e8f0;
     display: flex;
     flex-direction: column;
+    transition: all 0.3s ease;
 }
 
 #chat-widget h4 {
@@ -92,6 +93,15 @@
     font-weight: 500;
     font-size: 16px;
     margin: 0;
+    cursor: pointer; /* ทำให้รู้ว่ากดได้ */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+}
+
+#chat-widget h4:hover {
+    background: var(--primary-hover);
 }
 
 #chat-box {
@@ -102,14 +112,24 @@
     font-size: 14px;
 }
 
-/* [แก้ไข] ใช้ Flexbox จัดกลุ่ม Input และ Button */
+/* [แก้ไข] ซ่อนส่วนเนื้อหาแชทไว้ก่อน */
+#chat-box, 
 #chat-widget .chat-input-group {
+    display: none;
+}
+
+/* [แก้ไข] เมื่อมีคลาส .open ให้แสดงเนื้อหาแชท */
+#chat-widget.open #chat-box {
+    display: block;
+}
+
+#chat-widget.open .chat-input-group {
     display: flex;
     border-top: 1px solid #e2e8f0;
 }
 
 #chat-input {
-    flex: 1; /* ขยายเต็มพื้นที่ที่เหลือ */
+    flex: 1;
     padding: 12px 15px;
     border: none;
     outline: none;
@@ -117,7 +137,7 @@
 }
 
 #chat-widget button {
-    width: 80px; /* กำหนดความกว้างคงที่ */
+    width: 80px;
     padding: 12px;
     background: var(--primary);
     color: white;
