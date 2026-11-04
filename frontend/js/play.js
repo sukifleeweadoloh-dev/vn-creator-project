@@ -1,4 +1,7 @@
-// ลบ const API = ... ออก เพราะดึงจาก config.js แล้ว
+// ==========================================
+// Play Novel Logic
+// ==========================================
+
 const urlParams = new URLSearchParams(window.location.search);
 const novelId = urlParams.get('id') || 1;
 
@@ -8,14 +11,14 @@ let currentDialogue = 0;
 let novelAuthorId = null;
 let currentUser = JSON.parse(localStorage.getItem('user'));
 
+const pageLayer = document.getElementById('page-layer');
+const dialogueLayer = document.getElementById('dialogue-layer');
+const readerContainer = document.getElementById('reader-container');
+
 // ตรวจสอบว่ามีการโหลด config.js หรือยัง
 if (typeof API === 'undefined') {
     console.error("❌ ไม่พบตัวแปร API กรุณาตรวจสอบว่ามีการโหลด js/config.js ใน HTML หรือไม่");
 }
-
-const pageLayer = document.getElementById('page-layer');
-const dialogueLayer = document.getElementById('dialogue-layer');
-const readerContainer = document.getElementById('reader-container');
 
 // ==========================================
 // 1. โหลดข้อมูลนิยายจาก Database
@@ -36,9 +39,12 @@ async function loadNovel() {
         chapterData = data.pages;
         novelAuthorId = data.author_id;
 
-        // ตั้งค่าปุ่มติดตาม (เช็คสถานะก่อน)
-        await setupFollowButton();
-        
+        // โหลดข้อมูลโปรไฟล์นักเขียน (ถ้ามี)
+        if (novelAuthorId) {
+            loadAuthorInfo(novelAuthorId);
+        }
+
+        setupFollowButton();
         renderPage();
     } catch(e) { 
         console.error(e);
@@ -47,7 +53,49 @@ async function loadNovel() {
 }
 
 // ==========================================
-// 2. ระบบแสดงผลหน้าและบทพูด
+// 2. โหลดข้อมูลนักเขียน (ชื่อ, รูป, ลิงก์)
+// ==========================================
+async function loadAuthorInfo(authorId) {
+    const authorNameEl = document.getElementById('author-name');
+    const authorAvatarEl = document.getElementById('author-avatar');
+
+    try {
+        const res = await fetch(`${API}/users/profile/${authorId}`);
+        if (!res.ok) throw new Error("โหลดโปรไฟล์ไม่ได้");
+        
+        const data = await res.json();
+        const author = data.user;
+
+        if (author) {
+            authorNameEl.innerText = author.username;
+            if (author.profile_pic) {
+                authorAvatarEl.innerHTML = `<img src="${author.profile_pic}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+            } else {
+                authorAvatarEl.innerText = author.username.charAt(0).toUpperCase();
+            }
+        }
+    } catch (err) {
+        console.error(err);
+        authorNameEl.innerText = "ไม่พบผู้เขียน";
+    }
+}
+
+// ฟังก์ชันนำทางไปหน้าโปรไฟล์นักเขียน
+function goToAuthorProfile() {
+    if (novelAuthorId) {
+        window.location.href = `profile.html?id=${novelAuthorId}`;
+    }
+}
+
+// ฟังก์ชันนำทางไปหน้า Story Line (Player View)
+function goToStoryline() {
+    // ส่ง novelId ไปด้วยเพื่อให้หน้า storyline-player ดึงข้อมูลได้ถูกเรื่อง
+    window.location.href = `storyline-player.html?id=${novelId}`;
+}
+
+
+// ==========================================
+// 3. ระบบแสดงผลหน้าและบทพูด
 // ==========================================
 function renderPage() {
     pageLayer.innerHTML = '';
@@ -105,14 +153,15 @@ function showDialogue() {
 
 // คลิกทั้งจอเพื่อไปบทพูดถัดไป
 readerContainer.addEventListener('click', (e) => {
-    if(e.target.classList.contains('star') || e.target.closest('.follow-btn')) return;
+    // ถ้าคลิกที่ดาว, ปุ่มติดตาม, หรือ Top bar ไม่ต้องไปต่อ
+    if(e.target.classList.contains('star') || e.target.closest('.follow-btn') || e.target.closest('#top-bar-overlay')) return;
     
     currentDialogue++;
     showDialogue();
 });
 
 // ==========================================
-// 3. ระบบให้ดาว (Rating)
+// 4. ระบบให้ดาว (Rating)
 // ==========================================
 function rate(score) {
     if (!currentUser) {
@@ -145,10 +194,8 @@ function rate(score) {
 }
 
 // ==========================================
-// 4. ระบบติดตามผู้เขียน (Follow Author)
+// 5. ระบบติดตามผู้เขียน (Follow Author)
 // ==========================================
-
-// ตั้งค่าปุ่มติดตาม (เช็คสถานะก่อน)
 async function setupFollowButton() {
     const followBtn = document.getElementById('btn-follow-author');
     if (!followBtn) return;
@@ -174,7 +221,6 @@ async function setupFollowButton() {
         return;
     }
 
-    // เช็คสถานะการติดตามจาก Backend
     try {
         const res = await fetch(`${API}/users/check-follow/${currentUser.id}/${novelAuthorId}`);
         const data = await res.json();
@@ -200,10 +246,8 @@ async function setupFollowButton() {
     }
 }
 
-// ฟังก์ชันกดติดตาม
 function followAuthor(authorId) {
     const user = JSON.parse(localStorage.getItem('user'));
-    
     if(!user) return alert("กรุณาล็อกอินก่อนติดตาม");
 
     fetch(`${API}/users/follow`, {
@@ -219,14 +263,106 @@ function followAuthor(authorId) {
                 btn.innerHTML = '✓ ติดตามแล้ว';
                 btn.onclick = null;
             }
-        } else {
-            alert("เกิดข้อผิดพลาดในการติดตาม");
         }
-    }).catch(err => {
-        console.error("Follow error:", err);
-        alert("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้");
-    });
+    }).catch(err => console.error("Follow error:", err));
 }
 
+// ==========================================
+// 6. ระบบคอมเมนต์ (Comments)
+// ==========================================
+const commentModal = document.getElementById('comment-modal');
+const commentList = document.getElementById('comment-list');
+
+function openComments() {
+    commentModal.style.display = 'flex';
+    loadComments();
+}
+
+function closeComments() {
+    commentModal.style.display = 'none';
+}
+
+// ปิด Modal เมื่อคลิกพื้นที่ด้านนอก
+commentModal.addEventListener('click', (e) => {
+    if (e.target === commentModal) {
+        closeComments();
+    }
+});
+
+async function loadComments() {
+    commentList.innerHTML = '<p style="text-align:center; color:#94a3b8;">กำลังโหลด...</p>';
+    
+    try {
+        const res = await fetch(`${API}/novels/${novelId}/comments`);
+        const comments = await res.json();
+
+        if (comments.length === 0) {
+            commentList.innerHTML = '<p style="text-align:center; color:#94a3b8;">ยังไม่มีคอมเมนต์ มาเป็นคนแรกกันเลย!</p>';
+            return;
+        }
+
+        commentList.innerHTML = comments.map(c => {
+            const avatar = c.profile_pic 
+                ? `<img src="${c.profile_pic}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` 
+                : c.username.charAt(0).toUpperCase();
+
+            return `
+                <div class="comment-item">
+                    <div class="comment-avatar">${avatar}</div>
+                    <div class="comment-body">
+                        <div class="comment-author-name">${c.username}</div>
+                        <div>${c.content}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error("Load comments error:", err);
+        commentList.innerHTML = '<p style="text-align:center; color:red;">ไม่สามารถโหลดคอมเมนต์ได้</p>';
+    }
+}
+
+document.getElementById('btn-send-comment').addEventListener('click', async () => {
+    if (!currentUser) {
+        alert("กรุณาเข้าสู่ระบบก่อนแสดงความคิดเห็น");
+        return;
+    }
+
+    const input = document.getElementById('comment-input');
+    const content = input.value.trim();
+    if (!content) return;
+
+    try {
+        const res = await fetch(`${API}/novels/${novelId}/comments`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ 
+                user_id: currentUser.id, 
+                content: content 
+            })
+        });
+
+        if (res.ok) {
+            input.value = '';
+            loadComments(); // โหลดคอมเมนต์ใหม่
+        } else {
+            alert("ส่งคอมเมนต์ไม่สำเร็จ");
+        }
+    } catch (err) {
+        console.error("Send comment error:", err);
+        alert("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้");
+    }
+});
+
+// กด Enter ในช่องคอมเมนต์เพื่อส่ง
+document.getElementById('comment-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        document.getElementById('btn-send-comment').click();
+    }
+});
+
+// ==========================================
 // เริ่มต้นโหลดข้อมูล
+// ==========================================
 loadNovel();

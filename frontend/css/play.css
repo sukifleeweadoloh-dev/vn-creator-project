@@ -1,166 +1,291 @@
-body {
-    margin: 0;
-    overflow: hidden;
-    background: #000;
-}
-
-#reader-container {
-    width: 100vw;
-    height: 100vh;
-    position: relative;
-    cursor: pointer;
-    background-size: cover;
-    background-position: center;
-}
-
-/* เลเยอร์ตัวละคร (z-index ต่ำ) */
-#page-layer {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 10;
-}
-
-/* เลเยอร์บทพูด (z-index สูง) */
-#dialogue-layer {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 100;
-    pointer-events: none; /* ให้คลิกทะลุไปที่ reader-container เพื่อไปบทถัดไป */
-}
-
-/* กล่องบทพูด */
-.dialogue-box {
-    position: absolute;
-    bottom: 5%;
-    left: 10%;
-    width: 80%;
-    max-width: 1200px;
-    margin: 0 auto;
-    background: rgba(15, 23, 42, 0.9);
-    backdrop-filter: blur(8px);
-    color: white;
-    padding: 30px;
-    border-radius: 15px;
-    font-size: 24px;
-    line-height: 1.5;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    border: 1px solid rgba(255,255,255,0.2);
-    pointer-events: auto;
-    text-align: center;
-    animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* ตัวละคร */
-.character-sprite {
-    position: absolute;
-    transition: transform 0.3s;
-    filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5));
-}
-
-.character-sprite img {
-    max-height: 400px;
-    object-fit: contain;
-    pointer-events: none;
-}
-
-/* Rating Box */
-#rating-box {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: rgba(255,255,255,0.1);
-    backdrop-filter: blur(5px);
-    padding: 10px 20px;
-    border-radius: 30px;
-    color: white;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    z-index: 1000;
-    border: 1px solid rgba(255,255,255,0.2);
-}
-
-.star {
-    cursor: pointer;
-    font-size: 24px;
-    color: #fbbf24;
-    transition: transform 0.2s;
-}
-
-.star:hover {
-    transform: scale(1.2);
-}
-
-
-/* ==========================================
-   Responsive Design (สำหรับมือถือและแท็บเล็ต)
-   ========================================== */
-
-/* สำหรับ iPad (<= 1024px) */
-@media (max-width: 1024px) {
-    .character-sprite img {
-        max-height: 300px; /* ลดขนาดตัวละครลง */
-    }
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>อ่านนิยาย - VN Creator</title>
     
-    .dialogue-box {
-        padding: 20px;
-        font-size: 20px;
-        width: 85%;
-        left: 7.5%;
-    }
-}
+    <!-- ฟอนต์ -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- CSS หลักและ CSS ของหน้าอ่าน -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/play.css">
+    <link rel="stylesheet" href="css/cookie-consent.css">
+    
+    <style>
+        /* ========================================== */
+        /* สไตล์สำหรับ Top Bar (โปรไฟล์คนเขียน, ปุ่มเมนู) */
+        /* ========================================== */
+        #top-bar-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            pointer-events: none; /* ให้คลิกทะลุไปยัง reader-container ได้ */
+        }
 
-/* สำหรับมือถือ (<= 768px) */
-@media (max-width: 768px) {
-    /* ปรับกล่องให้ดาวให้เล็กลงและไม่บังจอ */
-    #rating-box {
-        top: 10px;
-        right: 10px;
-        padding: 5px 10px;
-        gap: 5px;
-        flex-wrap: wrap; /* ให้ปุ่มตกลงมาได้ถ้าจอแคบมาก */
-        border-radius: 15px;
-    }
+        #top-bar-overlay > * {
+            pointer-events: auto; /* เปิดให้คลิกได้เฉพาะส่วนที่ต้องการ */
+        }
 
-    #rating-box span:first-child {
-        display: none; /* ซ่อนคำว่า "ให้คะแนน:" เพื่อประหยัดพื้นที่ */
-    }
+        .btn-back-home {
+            color: white;
+            text-decoration: none;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(5px);
+            font-size: 14px;
+        }
 
-    .star {
-        font-size: 18px; /* ดาวเล็กลง */
-    }
+        .author-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 15px 5px 5px;
+            border-radius: 25px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: background 0.2s;
+        }
+        .author-info:hover { background: rgba(0,0,0,0.7); }
 
-    /* ปุ่มติดตามเล็กลง */
-    .follow-btn {
-        padding: 5px 10px;
-        font-size: 12px;
-        margin-left: 5px;
-        min-width: 90px;
-    }
+        .author-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #6366f1;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 14px;
+            object-fit: cover;
+        }
 
-    /* ลดขนาดตัวละครลงอีก */
-    .character-sprite img {
-        max-height: 250px; 
-    }
+        .author-name {
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+        }
 
-    /* กล่องบทพูดกว้างขึ้น และตัวอักษรเล็กลง */
-    .dialogue-box {
-        bottom: 10%; /* ขยับขึ้นมานิดนึง เผื่อมีแถบมือถือ */
-        left: 5%;
-        width: 90%;
-        padding: 15px;
-        font-size: 18px;
-        border-radius: 10px;
-    }
-}
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-action {
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: 'Prompt';
+            font-size: 14px;
+            backdrop-filter: blur(5px);
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-action:hover { background: rgba(0,0,0,0.7); }
+
+        /* ========================================== */
+        /* สไตล์สำหรับ Modal คอมเมนต์ */
+        /* ========================================== */
+        #comment-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .comment-modal-content {
+            background: white;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            max-height: 80vh;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .comment-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .comment-header h3 { margin: 0; color: #1e293b; }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #64748b;
+        }
+
+        #comment-list {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: #f8fafc;
+        }
+
+        .comment-item {
+            display: flex;
+            gap: 10px;
+        }
+
+        .comment-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #6366f1;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .comment-body {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            font-size: 14px;
+            color: #1e293b;
+        }
+
+        .comment-author-name {
+            font-weight: 600;
+            font-size: 13px;
+            color: #6366f1;
+            margin-bottom: 3px;
+        }
+
+        .comment-input-area {
+            padding: 15px 20px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 10px;
+        }
+
+        #comment-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 20px;
+            outline: none;
+            font-family: 'Prompt';
+        }
+
+        #btn-send-comment {
+            padding: 10px 20px;
+            background: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Prompt';
+        }
+    </style>
+</head>
+<body>
+
+    <!-- พื้นที่แสดงผลหลัก (คลิกเพื่อไปบทพูดถัดไป) -->
+    <div id="reader-container">
+        
+        <!-- เลเยอร์ตัวละครและบทพูด -->
+        <div id="page-layer"></div>
+        <div id="dialogue-layer"></div>
+
+        <!-- Top Bar Overlay (แสดงเหนือเนื้อหา) -->
+        <div id="top-bar-overlay">
+            <!-- ซ้าย: ปุ่มกลับหน้าหลัก -->
+            <a href="index.html" class="btn-back-home">🏠 กลับ</a>
+
+            <!-- ขวา: โปรไฟล์นักเขียน และปุ่มเมนู -->
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <!-- โปรไฟล์นักเขียน (JS จะเติมข้อมูล) -->
+                <div class="author-info" id="author-info-box" onclick="goToAuthorProfile()">
+                    <div class="author-avatar" id="author-avatar">?</div>
+                    <div class="author-name" id="author-name">กำลังโหลด...</div>
+                </div>
+
+                <!-- ปุ่มเมนู -->
+                <div class="action-buttons">
+                    <button class="btn-action" id="btn-view-storyline" onclick="goToStoryline()">
+                        🗺️ Story Line
+                    </button>
+                    <button class="btn-action" onclick="openComments()">
+                        💬 คอมเมนต์
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- กล่องให้ดาวและติดตาม -->
+        <div id="rating-box">
+            <span style="font-size: 14px; margin-right: 5px;">ให้คะแนน:</span>
+            <span class="star" onclick="rate(1)">☆</span>
+            <span class="star" onclick="rate(2)">☆</span>
+            <span class="star" onclick="rate(3)">☆</span>
+            <span class="star" onclick="rate(4)">☆</span>
+            <span class="star" onclick="rate(5)">☆</span>
+
+            <button class="follow-btn loading" id="btn-follow-author" data-following="false" disabled>
+                <span>⏳</span> กำลังโหลด...
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Modal คอมเมนต์ (ซ่อนไว้) -->
+    <div id="comment-modal">
+        <div class="comment-modal-content">
+            <div class="comment-header">
+                <h3>คอมเมนต์</h3>
+                <button class="close-btn" onclick="closeComments()">&times;</button>
+            </div>
+            <div id="comment-list">
+                <!-- รายการคอมเมนต์จะถูกโหลดที่นี่ -->
+                <p style="text-align:center; color:#94a3b8;">กำลังโหลด...</p>
+            </div>
+            <div class="comment-input-area">
+                <input type="text" id="comment-input" placeholder="พิมพ์คอมเมนต์...">
+                <button id="btn-send-comment">ส่ง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ⚠️ ลำดับการโหลด Script ⚠️ -->
+    <script src="js/config.js"></script>
+    <script src="js/cookie-consent.js"></script>
+    <script src="js/play.js"></script>
+</body>
+</html>

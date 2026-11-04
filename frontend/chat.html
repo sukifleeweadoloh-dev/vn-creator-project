@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แชท - VN Creator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/chat.css"> <!-- เดี๋ยวเราจะสร้างไฟล์นี้ในขั้นตอนถัดไป -->
+</head>
+<body>
+
+    <div class="chat-page-container">
+        <!-- Header: แสดงข้อมูลคู่สนทนา -->
+        <header class="chat-header">
+            <a href="index.html" class="btn-back">⬅</a>
+            <div class="partner-info">
+                <div id="partner-avatar" class="avatar">?</div>
+                <h2 id="partner-name">กำลังโหลด...</h2>
+            </div>
+        </header>
+
+        <!-- พื้นที่แสดงข้อความแชท -->
+        <main class="chat-messages" id="chat-messages">
+            <!-- ข้อความจะถูกโหลดมาที่นี่ด้วย JS -->
+            <div class="loading-text">กำลังโหลดข้อความ...</div>
+        </main>
+
+        <!-- ช่องกรอกข้อความ -->
+        <footer class="chat-input-area">
+            <input type="text" id="message-input" placeholder="พิมพ์ข้อความ..." autocomplete="off">
+            <button id="btn-send-msg">ส่ง</button>
+        </footer>
+    </div>
+
+    <!-- โหลด Script -->
+    <script src="js/config.js"></script>
+    <script src="js/chat.js"></script> <!-- เดี๋ยวเราจะสร้างไฟล์นี้ในขั้นตอนถัดไป -->
+</body>
+</html>

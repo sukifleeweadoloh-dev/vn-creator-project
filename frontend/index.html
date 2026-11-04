@@ -2,6 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VN Creator - Home</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/feed.css">
@@ -10,26 +11,47 @@
 <body>
     <nav class="navbar">
         <div class="nav-left">
-            <a href="#" class="nav-link active" data-target="home">หน้าหลัก</a>
-            <a href="#" class="nav-link" data-target="search">ค้นหา</a>
-            <a href="#" class="nav-link" data-target="popular">นิยม</a>
-            <a href="#" class="nav-link" data-target="following">ติดตาม</a>
+            <!-- ปุ่ม Burger (แสดงเฉพาะจอเล็ก) -->
+            <button class="burger-menu" id="burger-btn">☰</button>
+            
+            <!-- เมนูหลัก (แสดงในจอใหญ่) -->
+            <div class="desktop-menu">
+                <a href="#" class="nav-link active" data-target="home">หน้าหลัก</a>
+                <a href="#" class="nav-link" data-target="search">ค้นหา</a>
+                <a href="#" class="nav-link" data-target="popular">นิยม</a>
+                <a href="#" class="nav-link" data-target="following">ติดตาม</a>
+            </div>
         </div>
+        
         <div class="nav-right">
+            <!-- ปุ่มแชท (เพิ่มใหม่) -->
+            <button id="btn-open-chat" class="btn-chat" style="background:none; border:none; font-size:20px; cursor:pointer; color:var(--text-dark);">💬</button>
+            
             <a href="create.html" class="btn-create">สร้าง</a>
             <a href="#" class="nav-link" data-target="profile">โปรไฟล์</a>
             <a href="#" id="btn-logout" style="color: #ef4444; display: none;">ออกจากระบบ</a>
         </div>
     </nav>
+
+    <!-- เมนูสำหรับมือถือ (ซ่อนไว้ แสดงเมื่อกด Burger) -->
+    <div class="mobile-menu" id="mobile-menu">
+        <a href="#" class="nav-link" data-target="home">หน้าหลัก</a>
+        <a href="#" class="nav-link" data-target="search">ค้นหา</a>
+        <a href="#" class="nav-link" data-target="popular">นิยม</a>
+        <a href="#" class="nav-link" data-target="following">ติดตาม</a>
+        <a href="#" class="nav-link" data-target="profile">โปรไฟล์</a>
+    </div>
     
     <div id="main-content">
+        <!-- พื้นที่สำหรับฟีดวงกลม -->
         <div class="feed-container" id="feed-container"></div>
+        
+        <!-- พื้นที่สำหรับแสดงเนื้อหาหน้าอื่นๆ -->
         <div id="dynamic-view" style="display:none; padding: 50px;"></div>
     </div>
 
-    <!-- Chat Widget -->
+    <!-- Chat Widget (มุมขวาล่าง) -->
     <div id="chat-widget">
-        <!-- [แก้ไข] เพิ่มไอคอนลูกศรชี้ลง (▼) เพื่อบอกให้รู้ว่ากดเปิดได้ -->
         <h4 id="chat-header">
             <span>ติดต่อแอดมิน</span>
             <span id="chat-toggle-icon" style="font-size: 12px;">▼</span>
@@ -41,7 +63,24 @@
         </div>
     </div>
 
-    <!-- โหลด Script ตามลำดับที่ถูกต้อง -->
+    <!-- [เพิ่มใหม่] Popup แชท (ประวัติการแชทล่าสุด) -->
+    <div id="chat-list-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 3000; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
+        <div style="background: white; width: 90%; max-width: 500px; border-radius: 20px; display: flex; flex-direction: column; max-height: 80vh; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <!-- Header ของ Popup -->
+            <div style="padding: 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="font-size: 20px; font-weight: 600; color: var(--text-dark);">แชทล่าสุด</h2>
+                <button id="close-chat-modal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-light);">&times;</button>
+            </div>
+            
+            <!-- พื้นที่แสดงรายการแชท -->
+            <div id="chat-list-container" style="padding: 10px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px;">
+                <!-- รายการแชทจะถูกเติมด้วย JS -->
+                <div style="text-align: center; padding: 20px; color: var(--text-light);">ยังไม่มีประวัติการแชท</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ⚠️ ลำดับการโหลด Script ⚠️ -->
     <script src="js/config.js"></script>
     <script src="js/views.js"></script>
     <script src="js/feed.js"></script>

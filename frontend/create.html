@@ -2,6 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>สร้างนิยาย - VN Creator</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/create.css">
@@ -25,38 +26,53 @@
     <div class="editor-container">
         <!-- Sidebar ซ้าย -->
         <div class="sidebar">
-            <label style="font-size:14px; color:#666;">เลือกเรื่องที่จะแก้ไข:</label>
-            <select id="select-existing-novel" style="padding:8px; border-radius:8px; margin-bottom:10px;">
-                <option value="">-- สร้างเรื่องใหม่ --</option>
-            </select>
+            <div class="sidebar-header">
+                <div class="form-group">
+                    <label>เลือกเรื่องที่จะแก้ไข:</label>
+                    <select id="select-existing-novel" class="form-control">
+                        <option value="">-- สร้างเรื่องใหม่ --</option>
+                    </select>
+                </div>
 
-            <!-- [เพิ่มใหม่] ส่วนสำหรับอัปโหลดรูปปกและกรอกแท็ก -->
-            <div style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 10px;">
-                <label style="font-size:14px; color:#666; display:block; margin-bottom:5px;">รูปภาพปกเรื่อง:</label>
-                
-                <!-- ปุ่มสำหรับเปิดหน้าต่างอัปโหลด (รูปภาพจะถูกซ่อนไว้) -->
-                <input type="file" id="cover-input" accept="image/*" style="display:none;">
-                <button id="btn-upload-cover" style="width:100%; margin-bottom:8px; padding:8px; font-size:13px; background:#e2e8f0; border:none; border-radius:5px; cursor:pointer;">📸 อัปโหลดรูปปก</button>
-                
-                <!-- รูปภาพพรีวิว (ซ่อนไว้ก่อน ถ้ามีรูปค่อยแสดง) -->
-                <img id="cover-preview" src="" style="width: 100%; max-height: 120px; object-fit: cover; border-radius: 8px; display: none; margin-bottom: 10px;">
+                <!-- อัปโหลดรูปภาพปกเรื่อง -->
+                <div class="form-group">
+                    <label>รูปภาพปกเรื่อง:</label>
+                    <input type="file" id="cover-input" accept="image/*" style="display:none;">
+                    <div class="upload-btn" id="btn-upload-cover">
+                        📸 อัปโหลดรูปปก
+                    </div>
+                    <img id="cover-preview" src="" style="width: 100%; max-height: 120px; object-fit: cover; border-radius: 8px; display: none; margin-top: 10px;">
+                </div>
 
-                <label style="font-size:14px; color:#666; display:block; margin-bottom:5px;">แท็ก (คั่นด้วยจุลภาค):</label>
-                <!-- ช่องกรอกแท็ก (ไม่บังคับ) -->
-                <input type="text" id="input-tags" placeholder="เช่น fantasy, ต่อสู้, โรแมนติก" style="width:100%; padding:8px; border-radius:8px; border:1px solid #cbd5e1; font-family:'Prompt'; font-size:13px;">
+                <!-- ช่องกรอกแท็ก -->
+                <div class="form-group">
+                    <label>แท็ก (คั่นด้วยจุลภาค):</label>
+                    <input type="text" id="input-tags" class="form-control" placeholder="เช่น fantasy, ต่อสู้">
+                </div>
             </div>
-            <!-- ------------------------------------------------------- -->
 
-            <button id="btn-add-character">+ เพิ่มตัวละคร</button>
-            <button id="btn-add-dialogue">+ เพิ่มบทพูด</button>
-            
-            <hr>
-            
-            <!-- รายการหน้า (Thumbnails) -->
-            <div id="page-list"></div>
-            
-            <!-- ปุ่มเพิ่มหน้าใหม่ -->
-            <button id="btn-add-page">+ เพิ่มหน้าใหม่</button>
+            <div class="sidebar-content">
+                <!-- ปุ่มเพิ่ม Object -->
+                <button class="btn btn-secondary" id="btn-add-character">+ เพิ่มตัวละคร</button>
+                <button class="btn btn-secondary" id="btn-add-dialogue">+ เพิ่มบทพูด</button>
+                
+                <!-- ปุ่มเพิ่มตัวเลือก -->
+                <button class="btn btn-secondary" id="btn-add-choice">+ เพิ่มตัวเลือก</button>
+                
+                <!-- ปุ่มไปหน้า Story Line -->
+                <button class="btn btn-storyline" onclick="window.location.href='storyline-creator.html'">🔗 ไปที่ Story Line</button>
+
+                <div class="divider"></div>
+
+                <!-- รายการหน้า (Thumbnails) -->
+                <label style="font-size: 13px; color: var(--text-light);">รายการหน้า:</label>
+                <div id="page-list" class="page-list"></div>
+            </div>
+
+            <div class="sidebar-footer">
+                <!-- ปุ่มเพิ่มหน้าใหม่ -->
+                <button class="btn btn-secondary" id="btn-add-page" style="width: 100%;">+ เพิ่มหน้าใหม่</button>
+            </div>
         </div>
 
         <!-- Canvas ตรงกลาง (พื้นที่ทำงาน) -->
@@ -65,7 +81,7 @@
         </div>
     </div>
     
-    <!-- ⚠️ ลำดับการโหลด Script สำคัญมาก ห้ามสลับ ⚠️ -->
+    <!-- ⚠️ ลำดับการโหลด Script ⚠️ -->
     <script src="js/config.js"></script>
     <script src="js/cookie-consent.js"></script>
     <script src="js/create.js"></script>

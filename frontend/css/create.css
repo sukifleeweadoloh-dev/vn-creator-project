@@ -82,18 +82,81 @@ body {
     box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
 }
 
-/* Object ที่ลากได้ */
+/* ========================================== */
+/* Object ที่ลากได้ (ใช้ position: absolute เพื่อให้ปุ่มลบอยู่มุมขวาบนได้) */
+/* ========================================== */
 .draggable-obj {
     position: absolute;
     cursor: grab;
     user-select: none;
     transform-origin: center;
+    /* เพิ่ม padding เล็กน้อยเพื่อให้เห็นกรอบเวลาลาก */
 }
+
 .draggable-obj:active {
     cursor: grabbing;
 }
 
+/* ========================================== */
+/* ปุ่มลบ (ไอคอน - สีแดง) */
+/* ========================================== */
+.btn-delete {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    width: 24px;
+    height: 24px;
+    background-color: #ef4444; /* สีแดง */
+    color: white;
+    border: 2px solid white;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    z-index: 200; /* ให้อยู่บนสุดเสมอ */
+    transition: transform 0.2s;
+    line-height: 1;
+}
+
+.btn-delete:hover {
+    transform: scale(1.2);
+    background-color: #dc2626;
+}
+
+/* ปุ่มลบพื้นหลัง (มุมขวาบนของ Canvas) */
+.bg-delete-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    background-color: rgba(239, 68, 68, 0.8); /* สีแดงโปร่งแสง */
+    color: white;
+    border: 2px solid white;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 150;
+    backdrop-filter: blur(5px);
+    transition: 0.2s;
+}
+
+.bg-delete-btn:hover {
+    background-color: #dc2626;
+    transform: scale(1.1);
+}
+
+/* ========================================== */
 /* บทพูด */
+/* ========================================== */
 .dialogue-obj {
     background: rgba(255, 255, 255, 0.95);
     padding: 20px;
@@ -105,100 +168,81 @@ body {
     border: 2px solid #cbd5e1;
 }
 
+.dialogue-obj textarea {
+    width: 100%;
+    border: none;
+    background: transparent;
+    resize: none;
+    outline: none;
+    font-family: 'Prompt', sans-serif;
+    font-size: 20px;
+    text-align: center;
+}
+
+/* ========================================== */
 /* ตัวละคร */
+/* ========================================== */
 .character-obj img {
     max-height: 400px;
     object-fit: contain;
     pointer-events: none; /* ให้คลิกโดนตัว div หลัก */
 }
 
-
-/* ==========================================
-   Responsive Design (สำหรับมือถือและแท็บเล็ต)
-   ========================================== */
-
-/* สำหรับ iPad (<= 1024px) */
-@media (max-width: 1024px) {
-    .sidebar {
-        width: 200px; /* ลดความกว้าง Sidebar ลง */
-        padding: 15px;
-    }
+/* ========================================== */
+/* กล่องตัวเลือก (Choice Box) */
+/* ========================================== */
+.choice-obj {
+    background: rgba(30, 41, 59, 0.95);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    padding: 15px;
+    border-radius: 12px;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    color: white;
 }
 
-/* สำหรับมือถือ (<= 768px) */
-@media (max-width: 768px) {
-    /* 1. ปรับแถบด้านบนให้ปุ่มเรียงลงมา */
-    .top-bar {
-        flex-direction: column;
-        gap: 10px;
-        padding: 10px;
-        align-items: stretch;
-    }
+.choice-item-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
 
-    .top-bar > div {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-        justify-content: center;
-    }
+.choice-label {
+    font-weight: bold;
+    width: 20px;
+}
 
-    .top-bar a, .top-bar button {
-        flex: 1;
-        text-align: center;
-        padding: 8px 10px;
-        font-size: 14px;
-    }
+.choice-input {
+    flex: 1;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    padding: 8px;
+    border-radius: 6px;
+    outline: none;
+    font-family: 'Prompt';
+}
 
-    /* 2. เปลี่ยน Layout เป็น บน-ล่าง */
-    .editor-container {
-        flex-direction: column;
-        height: calc(100vh - 120px); /* หักความสูง Top bar ออก */
-    }
+.choice-input:focus {
+    border-color: var(--primary);
+}
 
-    /* 3. ปรับ Sidebar ให้เป็นแนวนอน */
-    .sidebar {
-        width: 100%;
-        height: auto;
-        border-right: none;
-        border-bottom: 1px solid #e2e8f0;
-        padding: 10px;
-        flex-direction: row; /* เรียงแนวนอน */
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 10px;
-    }
+.btn-add-more-choice {
+    background: rgba(255,255,255,0.1);
+    border: 1px dashed rgba(255,255,255,0.3);
+    color: white;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: center;
+    transition: 0.2s;
+    font-size: 14px;
+}
 
-    .sidebar label {
-        width: 100%;
-        margin-bottom: 5px;
-    }
-
-    .sidebar select {
-        width: 100%;
-    }
-
-    .sidebar button {
-        flex: 1;
-        padding: 8px;
-        font-size: 12px;
-    }
-
-    /* ทำให้ Thumbnail เลื่อนซ้าย-ขวาได้ */
-    #page-list {
-        width: 100%;
-        flex-direction: row;
-        overflow-x: auto;
-        overflow-y: hidden;
-        height: 80px;
-        margin: 5px 0;
-    }
-
-    .page-thumb {
-        flex-shrink: 0;
-    }
-
-    /* 4. Canvas ให้กินพื้นที่ที่เหลือ */
-    .canvas {
-        min-height: 50vh;
-    }
+.btn-add-more-choice:hover {
+    background: rgba(255,255,255,0.2);
 }

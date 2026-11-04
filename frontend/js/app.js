@@ -1,10 +1,9 @@
 // ==========================================
-// 1. Safe Initialization (เรียกใช้ฟังก์ชันอย่างปลอดภัย)
+// 1. Safe Initialization
 // ==========================================
 function initApp() {
     console.log("✅ app.js เริ่มทำงาน");
     
-    // ตรวจสอบว่ามีการโหลด config.js หรือยัง
     if (typeof API === 'undefined') {
         console.error("❌ ไม่พบตัวแปร API กรุณาตรวจสอบว่ามีการโหลด js/config.js ใน HTML หรือไม่");
         return;
@@ -28,11 +27,103 @@ function initApp() {
     const navLinks = document.querySelectorAll('.nav-link');
     const appContent = document.getElementById('dynamic-view');
     const feedContainer = document.getElementById('feed-container');
-
-    console.log(`📌 พบปุ่มเมนู ${navLinks.length} ปุ่ม`);
+    
+    // Elements สำหรับเมนู Burger และ Popup แชท
+    const burgerBtn = document.getElementById('burger-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const chatListModal = document.getElementById('chat-list-modal');
+    const btnOpenChat = document.getElementById('btn-open-chat');
+    const closeChatModal = document.getElementById('close-chat-modal');
+    const chatListContainer = document.getElementById('chat-list-container');
 
     // ------------------------------------------
-    // [เพิ่มใหม่] ระบบ เปิด-ปิด กล่องแชท (Chat Toggle)
+    // [เพิ่มใหม่] ระบบเมนู Burger (มือถือ)
+    // ------------------------------------------
+    if (burgerBtn && mobileMenu) {
+        burgerBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('show');
+        });
+    }
+
+    // ------------------------------------------
+    // [เพิ่มใหม่] ระบบ Popup แชท (Chat History)
+    // ------------------------------------------
+    if (btnOpenChat) {
+        btnOpenChat.addEventListener('click', () => {
+            if (!currentUser) {
+                alert("กรุณาเข้าสู่ระบบเพื่อดูข้อความ");
+                return;
+            }
+            chatListModal.style.display = 'flex';
+            loadRecentChats();
+        });
+    }
+
+    if (closeChatModal) {
+        closeChatModal.addEventListener('click', () => {
+            chatListModal.style.display = 'none';
+        });
+    }
+
+    // ปิด Popup เมื่อคลิกพื้นที่ว่างด้านนอก
+    if (chatListModal) {
+        chatListModal.addEventListener('click', (e) => {
+            if (e.target === chatListModal) {
+                chatListModal.style.display = 'none';
+            }
+        });
+    }
+
+    // ฟังก์ชันโหลดประวัติแชทล่าสุด
+    async function loadRecentChats() {
+        if (!chatListContainer) return;
+        chatListContainer.innerHTML = '<p style="text-align:center; color:#94a3b8;">กำลังโหลด...</p>';
+
+        try {
+            const res = await fetch(`${API}/users/recent-chats/${currentUser.id}`);
+            if (!res.ok) throw new Error("โหลดข้อมูลไม่สำเร็จ");
+            
+            const chats = await res.json();
+            
+            if (chats.length === 0) {
+                chatListContainer.innerHTML = '<p style="text-align:center; color:#94a3b8; padding:20px;">ยังไม่มีประวัติการแชท</p>';
+                return;
+            }
+
+            chatListContainer.innerHTML = chats.map(chat => {
+                // เช็คว่าใครเป็นคนส่งข้อความล่าสุด (เรา หรือ เขา)
+                const isMyMessage = chat.sender_id === currentUser.id;
+                const prefix = isMyMessage ? 'คุณ: ' : '';
+                
+                // รูปโปรไฟล์ (ถ้าไม่มีให้ใช้อักษรตัวแรก)
+                const avatarHtml = chat.profile_pic 
+                    ? `<img src="${chat.profile_pic}" class="chat-avatar" style="object-fit:cover;">`
+                    : `<div class="chat-avatar">${chat.username.charAt(0).toUpperCase()}</div>`;
+
+                // จัดรูปแบบเวลาแบบง่ายๆ
+                const date = new Date(chat.created_at);
+                const timeStr = date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+
+                return `
+                    <div class="chat-list-item" onclick="window.location.href='chat.html?partnerId=${chat.partner_id}'">
+                        ${avatarHtml}
+                        <div class="chat-info">
+                            <div class="chat-name">${chat.username}</div>
+                            <div class="chat-last-msg">${prefix}${chat.content}</div>
+                        </div>
+                        <div class="chat-time">${timeStr}</div>
+                    </div>
+                `;
+            }).join('');
+
+        } catch (err) {
+            console.error("Chat List Error:", err);
+            chatListContainer.innerHTML = '<p style="text-align:center; color:red;">ไม่สามารถโหลดข้อมูลได้</p>';
+        }
+    }
+
+    // ------------------------------------------
+    // ระบบ เปิด-ปิด กล่องแชทลอย (มุมขวาล่าง)
     // ------------------------------------------
     const chatWidget = document.getElementById('chat-widget');
     const chatHeader = document.getElementById('chat-header');
@@ -40,15 +131,8 @@ function initApp() {
 
     if (chatHeader && chatWidget && chatToggleIcon) {
         chatHeader.addEventListener('click', () => {
-            // สลับคลาส .open เพื่อเปิด/ปิด
             chatWidget.classList.toggle('open');
-            
-            // เปลี่ยนไอคอนลูกศรตามสถานะ
-            if (chatWidget.classList.contains('open')) {
-                chatToggleIcon.innerText = '▲'; // ลูกศรชี้ขึ้น (เปิดอยู่)
-            } else {
-                chatToggleIcon.innerText = '▼'; // ลูกศรชี้ลง (ปิดอยู่)
-            }
+            chatToggleIcon.innerText = chatWidget.classList.contains('open') ? '▲' : '▼';
         });
     }
 
@@ -56,6 +140,7 @@ function initApp() {
     // ฟังก์ชันสลับหน้า (SPA)
     // ------------------------------------------
     function navigateTo(pageId) {
+        // อัปเดตสถานะ Active ที่เมนู (ทั้ง Desktop และ Mobile)
         navLinks.forEach(link => {
             if(link.dataset.target === pageId) {
                 link.classList.add('active');
@@ -64,12 +149,14 @@ function initApp() {
             }
         });
 
+        // ปิดเมนูมือถืออัตโนมัติเมื่อกดเลือก
+        if (mobileMenu) mobileMenu.classList.remove('show');
+
         if (pageId === 'home') {
             appContent.style.display = 'none';
             feedContainer.style.display = 'block';
         } else {
             if (typeof viewsHTML === 'undefined' || !viewsHTML[pageId]) {
-                console.error(`❌ ไม่พบ viewsHTML['${pageId}']`);
                 appContent.innerHTML = `<h1 style="color:red; padding:20px;">ไม่พบหน้านี้ (${pageId})</h1>`;
             } else {
                 appContent.innerHTML = viewsHTML[pageId];
@@ -93,12 +180,10 @@ function initApp() {
                 .then(data => {
                     const container = document.getElementById('popular-list');
                     if(!container) return;
-
                     if (!Array.isArray(data)) {
-                        container.innerHTML = `<p style="color:red;">เกิดข้อผิดพลาดจากเซิร์ฟเวอร์: ${data.error || 'ไม่ทราบสาเหตุ'}</p>`;
+                        container.innerHTML = `<p style="color:red;">เกิดข้อผิดพลาด: ${data.error || 'ไม่ทราบสาเหตุ'}</p>`;
                         return;
                     }
-
                     if (data.length === 0) {
                         container.innerHTML = '<p style="color:#64748b;">ยังไม่มีนิยายในระบบ</p>';
                         return;
@@ -111,11 +196,7 @@ function initApp() {
                             <p style="color:#6366f1; font-size:14px;">👁️ ${n.views} วิว</p>
                         </div>
                     `).join('');
-                }).catch(err => {
-                    console.error("Popular error:", err);
-                    const container = document.getElementById('popular-list');
-                    if(container) container.innerHTML = '<p style="color:red;">ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้</p>';
-                });
+                }).catch(err => console.error(err));
         }
 
         if (pageId === 'following') {
@@ -128,11 +209,7 @@ function initApp() {
             fetch(`${API}/users/following/${user.id}`)
                 .then(r => r.json())
                 .then(data => {
-                    if (!Array.isArray(data)) {
-                        container.innerHTML = `<p style="color:red;">เกิดข้อผิดพลาด: ${data.error || 'ไม่ทราบสาเหตุ'}</p>`;
-                        return;
-                    }
-
+                    if (!Array.isArray(data)) return;
                     if(data.length === 0) {
                         container.innerHTML = '<p style="color:#64748b;">คุณยังไม่ได้ติดตามใคร</p>';
                     } else {
@@ -145,7 +222,7 @@ function initApp() {
                             </div>
                         `).join('');
                     }
-                }).catch(err => console.error("Following error:", err));
+                }).catch(err => console.error(err));
         }
     }
 
@@ -177,11 +254,7 @@ function initApp() {
         fetch(`${API}/novels/search?q=${encodeURIComponent(query)}`)
             .then(r => r.json())
             .then(data => {
-                if (!Array.isArray(data)) {
-                    resultsContainer.innerHTML = `<p style="color:red;">เกิดข้อผิดพลาด: ${data.error || 'ไม่ทราบสาเหตุ'}</p>`;
-                    return;
-                }
-
+                if (!Array.isArray(data)) return;
                 if (data.length === 0) {
                     resultsContainer.innerHTML = '<p style="color:#64748b;">ไม่พบนิยายที่ค้นหา</p>';
                 } else {
@@ -192,14 +265,11 @@ function initApp() {
                         </div>
                     `).join('');
                 }
-            }).catch(err => {
-                console.error("Search error:", err);
-                resultsContainer.innerHTML = '<p style="color:red;">เกิดข้อผิดพลาดในการค้นหา</p>';
-            });
+            }).catch(err => console.error(err));
     };
 
     // ------------------------------------------
-    // ระบบแชท (โหลดข้อความ)
+    // ระบบแชท (กล่องลอยมุมขวาล่าง)
     // ------------------------------------------
     function loadChat() {
         if (!document.getElementById('chat-box')) return;
@@ -207,7 +277,8 @@ function initApp() {
             document.getElementById('chat-box').innerHTML = '<p style="color:#94a3b8; text-align:center; font-size:12px;">กรุณาเข้าสู่ระบบเพื่อแชท</p>';
             return;
         }
-        fetch(`${API}/users/messages/${currentUser.id}`)
+        // สมมติว่ากล่องลอยนี้คุยกับ Admin ID 1
+        fetch(`${API}/users/messages/${currentUser.id}/1`)
             .then(r => r.json())
             .then(msgs => {
                 if (!Array.isArray(msgs)) return; 
@@ -220,7 +291,7 @@ function initApp() {
                     </div>
                 `).join('');
                 box.scrollTop = box.scrollHeight;
-            }).catch(err => console.error("Chat error:", err));
+            }).catch(err => console.error(err));
     }
 
     function sendMsg() {
@@ -231,8 +302,8 @@ function initApp() {
         fetch(`${API}/users/message`, {
             method: 'POST', 
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ sender_id: currentUser.id, receiver_id: 1, content: input.value })
-        }).then(() => { input.value = ''; loadChat(); }).catch(err => console.error("Send error:", err));
+            body: JSON.stringify({ sender_id: currentUser.id, receiver_id: 1, content: input.value }) // 1 = Admin
+        }).then(() => { input.value = ''; loadChat(); }).catch(err => console.error(err));
     }
 
     // ------------------------------------------

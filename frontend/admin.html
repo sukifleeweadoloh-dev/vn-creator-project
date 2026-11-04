@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - VN Creator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- สไตล์เฉพาะของ Admin (จะเขียนในขั้นตอนถัดไป) -->
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+    <div class="admin-layout">
+        <!-- ========================================== -->
+        <!-- Sidebar (เมนูด้านซ้าย) -->
+        <!-- ========================================== -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-logo">
+                <h2>VN Admin</h2>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-tab="dashboard">📊 ภาพรวม (Dashboard)</a>
+                <a href="#" class="nav-item" data-tab="novels">📚 จัดการนิยาย</a>
+                <a href="#" class="nav-item" data-tab="users">👥 จัดการผู้ใช้</a>
+                <a href="#" class="nav-item" data-tab="chats">💬 กล่องข้อความ</a>
+                <a href="#" class="nav-item" data-tab="settings">⚙️ ตั้งค่าระบบ</a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="index.html">🏠 กลับหน้าหลัก</a>
+                <a href="#" id="btn-admin-logout" style="color: #ef4444;">🚪 ออกจากระบบ</a>
+            </div>
+        </aside>
+
+        <!-- ========================================== -->
+        <!-- Main Content (พื้นที่ทำงานด้านขวา) -->
+        <!-- ========================================== -->
+        <main class="admin-main">
+            <!-- Header -->
+            <header class="admin-header">
+                <h1 id="page-title">ภาพรวมระบบ</h1>
+                <div class="admin-profile">
+                    <span id="admin-name">Admin</span>
+                    <div class="avatar" id="admin-avatar">A</div>
+                </div>
+            </header>
+
+            <!-- พื้นที่แสดงเนื้อหาแต่ละแท็บ -->
+            <div class="admin-content-area">
+                
+                <!-- 1. แท็บ Dashboard (ภาพรวม) -->
+                <div id="tab-dashboard" class="tab-content active">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>ผู้ใช้ทั้งหมด</h3>
+                            <p id="stat-total-users">0</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>นิยายในระบบ</h3>
+                            <p id="stat-total-novels">0</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>ข้อความแชท</h3>
+                            <p id="stat-total-messages">0</p>
+                        </div>
+                    </div>
+                    <p style="margin-top: 20px; color: #64748b;">* ตัวเลขจะถูกอัปเดตโดย JavaScript</p>
+                </div>
+
+                <!-- 2. แท็บจัดการนิยาย -->
+                <div id="tab-novels" class="tab-content">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>ชื่อเรื่อง</th>
+                                    <th>ผู้เขียน</th>
+                                    <th>ยอดวิว</th>
+                                    <th>จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-novels-list">
+                                <!-- ข้อมูลจะถูกโหลดมาที่นี่ -->
+                                <tr><td colspan="5" style="text-align:center;">กำลังโหลด...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 3. แท็บจัดการผู้ใช้ -->
+                <div id="tab-users" class="tab-content">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>ชื่อผู้ใช้</th>
+                                    <th>อีเมล</th>
+                                    <th>สถานะ (Role)</th>
+                                    <th>จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-users-list">
+                                <!-- ข้อมูลจะถูกโหลดมาที่นี่ -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 4. แท็บกล่องข้อความแชท -->
+                <div id="tab-chats" class="tab-content">
+                    <div style="display: flex; gap: 20px; height: 100%;">
+                        <!-- รายชื่อผู้ติดต่อ -->
+                        <div style="width: 300px; background: white; border-radius: 10px; border: 1px solid #e2e8f0; overflow-y: auto;">
+                            <h3 style="padding: 15px; border-bottom: 1px solid #e2e8f0;">ผู้ติดต่อ</h3>
+                            <div id="admin-chat-list">
+                                <!-- รายชื่อแชทจะถูกโหลดมาที่นี่ -->
+                            </div>
+                        </div>
+                        
+                        <!-- หน้าต่างแชท (จะแสดงเมื่อเลือกคน) -->
+                        <div style="flex: 1; background: white; border-radius: 10px; border: 1px solid #e2e8f0; display: flex; flex-direction: column;">
+                            <div id="admin-chat-header" style="padding: 15px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #64748b;">
+                                เลือกผู้ติดต่อเพื่อเริ่มแชท
+                            </div>
+                            <div id="admin-chat-messages" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #f8fafc;">
+                                <!-- ข้อความจะถูกโหลดมาที่นี่ -->
+                            </div>
+                            <div style="padding: 15px; border-top: 1px solid #e2e8f0; display: flex; gap: 10px;">
+                                <input type="text" id="admin-chat-input" placeholder="พิมพ์ตอบกลับ..." style="flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #cbd5e1; outline: none; font-family: 'Prompt';">
+                                <button id="btn-admin-send-chat" style="padding: 10px 20px; border-radius: 20px; border: none; background: #6366f1; color: white; font-weight: bold; cursor: pointer;">ส่ง</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. แท็บตั้งค่า (แท็ก, จัดเรียงยอดนิยม) -->
+                <div id="tab-settings" class="tab-content">
+                    <h3 style="color: #1e293b; margin-bottom: 15px;">จัดการแท็ก (#)</h3>
+                    <div class="table-container" style="margin-bottom: 30px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>แท็ก</th>
+                                    <th>จำนวนนิยายที่ใช้</th>
+                                    <th>จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-tags-list">
+                                <!-- ข้อมูลแท็กจะถูกโหลดมาที่นี่ -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3 style="color: #1e293b; margin-bottom: 15px;">ปรับแต่งเรื่องยอดนิยม</h3>
+                    <p style="color: #64748b;">(ในอนาคตสามารถลากการ์ดเพื่อเรียงลำดับ Popular ได้)</p>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- โหลด Script -->
+    <script src="js/config.js"></script>
+    <script src="js/admin.js"></script> <!-- เดี๋ยวเราจะสร้างไฟล์นี้ในขั้นตอนถัดไป -->
+</body>
+</html>

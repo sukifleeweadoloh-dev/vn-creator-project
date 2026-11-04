@@ -1,0 +1,413 @@
+/* ========================================== */
+/* CSS สำหรับหน้า Admin Dashboard */
+/* ========================================== */
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #f1f5f9;
+    height: 100vh;
+    overflow: hidden; /* ไม่ให้หน้าจอหลักเลื่อน */
+}
+
+.admin-layout {
+    display: flex;
+    height: 100vh;
+}
+
+/* ========================================== */
+/* Sidebar (เมนูด้านซ้าย) */
+/* ========================================== */
+.admin-sidebar {
+    width: 260px;
+    background-color: #1e293b; /* สีเข้มสำหรับ Admin */
+    color: white;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.sidebar-logo {
+    padding: 20px;
+    border-bottom: 1px solid #334155;
+    text-align: center;
+}
+
+.sidebar-logo h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: #6366f1; /* สี Primary */
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    overflow-y: auto;
+}
+
+.nav-item {
+    padding: 15px 25px;
+    color: #cbd5e1;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.2s;
+    border-left: 4px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-item:hover {
+    background-color: #334155;
+    color: white;
+}
+
+.nav-item.active {
+    background-color: #334155;
+    color: white;
+    border-left-color: #6366f1;
+}
+
+.sidebar-footer {
+    padding: 20px;
+    border-top: 1px solid #334155;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.sidebar-footer a {
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.2s;
+}
+
+.sidebar-footer a:hover {
+    color: white;
+}
+
+/* ========================================== */
+/* Main Content (พื้นที่ทำงานด้านขวา) */
+/* ========================================== */
+.admin-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.admin-header {
+    height: 70px;
+    background-color: white;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 30px;
+    flex-shrink: 0;
+}
+
+.admin-header h1 {
+    font-size: 22px;
+    color: #1e293b;
+    margin: 0;
+}
+
+.admin-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.admin-profile .avatar {
+    width: 40px;
+    height: 40px;
+    background-color: #6366f1;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 18px;
+}
+
+.admin-content-area {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+}
+
+/* ========================================== */
+/* Tabs Logic */
+/* ========================================== */
+.tab-content {
+    display: none;
+    height: 100%;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* สำหรับแท็บแชทที่ต้องใช้ Flex เต็มพื้นที่ */
+#tab-chats.active {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ========================================== */
+/* Dashboard Stats Cards */
+/* ========================================== */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.stat-card {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    border: 1px solid #e2e8f0;
+    text-align: center;
+}
+
+.stat-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.stat-card p {
+    margin: 0;
+    font-size: 36px;
+    font-weight: 700;
+    color: #6366f1;
+}
+
+/* ========================================== */
+/* ตารางข้อมูล (Tables) */
+/* ========================================== */
+.table-container {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 15px 20px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+td {
+    font-size: 14px;
+    color: #1e293b;
+    vertical-align: middle;
+}
+
+tr:hover {
+    background-color: #f8fafc;
+}
+
+/* ปุ่มในตาราง */
+.btn-action {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'Prompt', sans-serif;
+    transition: 0.2s;
+}
+
+.btn-danger {
+    background-color: #fee2e2;
+    color: #ef4444;
+}
+
+.btn-danger:hover { background-color: #fecaca; }
+
+.btn-primary {
+    background-color: #e0e7ff;
+    color: #4f46e5;
+}
+
+.btn-primary:hover { background-color: #c7d2fe; }
+
+/* ========================================== */
+/* หน้าต่างแชทใน Admin */
+/* ========================================== */
+.admin-chat-contact {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px;
+    border-bottom: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.admin-chat-contact:hover {
+    background-color: #f8fafc;
+}
+
+.admin-chat-contact.active {
+    background-color: #e0e7ff;
+    border-left: 4px solid #6366f1;
+}
+
+.admin-chat-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #cbd5e1;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+}
+
+.admin-chat-contact.active .admin-chat-avatar {
+    background: #6366f1;
+}
+
+.admin-chat-info {
+    flex: 1;
+    overflow: hidden;
+}
+
+.admin-chat-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: #1e293b;
+}
+
+.admin-chat-last {
+    font-size: 12px;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+}
+
+/* ข้อความแชท (Bubble) */
+.admin-msg-row { display: flex; width: 100%; }
+.admin-msg-row.mine { justify-content: flex-end; }
+.admin-msg-row.theirs { justify-content: flex-start; }
+
+.admin-msg-bubble {
+    max-width: 70%;
+    padding: 10px 15px;
+    border-radius: 15px;
+    font-size: 14px;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.admin-msg-row.mine .admin-msg-bubble {
+    background-color: #6366f1;
+    color: white;
+    border-bottom-right-radius: 3px;
+}
+
+.admin-msg-row.theirs .admin-msg-bubble {
+    background-color: #ffffff;
+    color: #1e293b;
+    border: 1px solid #e2e8f0;
+    border-bottom-left-radius: 3px;
+}
+
+/* ========================================== */
+/* Responsive (สำหรับหน้าจอเล็ก) */
+/* ========================================== */
+@media (max-width: 1024px) {
+    .admin-sidebar {
+        width: 80px; /* ย่อ Sidebar */
+    }
+    
+    .sidebar-logo h2, .nav-item span, .sidebar-footer a span {
+        display: none; /* ซ่อนข้อความ */
+    }
+    
+    .nav-item {
+        justify-content: center;
+        padding: 15px 0;
+        font-size: 20px;
+    }
+
+    .sidebar-footer {
+        align-items: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-layout {
+        flex-direction: column;
+    }
+
+    .admin-sidebar {
+        width: 100%;
+        height: auto;
+        flex-direction: row;
+        overflow-x: auto;
+        justify-content: space-between;
+    }
+
+    .sidebar-logo, .sidebar-footer {
+        display: none; /* ซ่อน Logo และ Footer */
+    }
+
+    .sidebar-nav {
+        flex-direction: row;
+        padding: 0;
+    }
+
+    .nav-item {
+        padding: 15px 20px;
+        border-left: none;
+        border-bottom: 4px solid transparent;
+    }
+
+    .nav-item.active {
+        border-left: none;
+        border-bottom-color: #6366f1;
+    }
+
+    .admin-content-area {
+        padding: 15px;
+    }
+    
+    /* ปรับหน้าต่างแชทให้เต็มจอเมื่ออยู่บนมือถือ */
+    #tab-chats > div {
+        flex-direction: column;
+        height: auto;
+    }
+}
