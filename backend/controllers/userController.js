@@ -1,6 +1,8 @@
 const db = require('../db');
 
-// 1. ดึงข้อมูลโปรไฟล์
+// ==========================================
+// 1. ระบบโปรไฟล์ (Profile)
+// ==========================================
 exports.getProfile = async (req, res) => {
     try {
         const userId = req.params.id;
@@ -14,19 +16,16 @@ exports.getProfile = async (req, res) => {
             return res.status(404).json({ error: "ไม่พบผู้ใช้" });
         }
 
-        // ดึงนิยายที่ผู้ใช้สร้าง
         const { rows: novels } = await db.query(
             'SELECT * FROM novels WHERE author_id = $1 ORDER BY created_at DESC', 
             [userId]
         );
         
-        // นับผู้ติดตาม (คนที่ติดตามเรา)
         const { rows: followers } = await db.query(
             'SELECT COUNT(*)::int FROM follows WHERE following_id = $1', 
             [userId]
         );
 
-        // นับคนที่เราติดตาม (Following)
         const { rows: following } = await db.query(
             'SELECT COUNT(*)::int FROM follows WHERE follower_id = $1', 
             [userId]
@@ -41,7 +40,6 @@ exports.getProfile = async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// 2. อัปเดตโปรไฟล์ (รองรับการอัปเดตทีละฟิลด์)
 exports.updateProfile = async (req, res) => {
     const { bio, profile_pic, id } = req.body;
     try {
@@ -58,17 +56,16 @@ exports.updateProfile = async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// 3. ระบบติดตาม (Follow)
+// ==========================================
+// 2. ระบบติดตาม (Follow)
+// ==========================================
 exports.followUser = async (req, res) => {
     const { follower_id, following_id } = req.body;
-    
-    // ป้องกันการติดตามตัวเอง
     if (follower_id === following_id) {
         return res.status(400).json({ error: "คุณไม่สามารถติดตามตัวเองได้" });
     }
 
     try {
-        // ตรวจสอบว่าผู้ใช้ทั้งสองมีตัวตนอยู่จริง
         const { rows: userCheck } = await db.query(
             'SELECT id FROM users WHERE id IN ($1, $2)', 
             [follower_id, following_id]
@@ -77,7 +74,6 @@ exports.followUser = async (req, res) => {
             return res.status(404).json({ error: "ไม่พบผู้ใช้ที่ต้องการติดตาม" });
         }
 
-        // INSERT แบบ ON CONFLICT DO NOTHING (ถ้าติดตามอยู่แล้วจะไม่ Error)
         await db.query(
             'INSERT INTO follows (follower_id, following_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', 
             [follower_id, following_id]
@@ -86,7 +82,6 @@ exports.followUser = async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// 4. [เพิ่มใหม่] เช็คสถานะการติดตาม
 exports.checkFollowStatus = async (req, res) => {
     const { followerId, followingId } = req.params;
     try {
@@ -98,7 +93,6 @@ exports.checkFollowStatus = async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// 5. ดึงรายชื่อที่เราติดตาม (Following)
 exports.getFollowing = async (req, res) => {
     try {
         const { rows } = await db.query(
@@ -111,7 +105,6 @@ exports.getFollowing = async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// 6. [เพิ่มใหม่] ดึงรายชื่อผู้ติดตามเรา (Followers)
 exports.getFollowers = async (req, res) => {
     try {
         const { rows } = await db.query(
@@ -124,7 +117,11 @@ exports.getFollowers = async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// 7. ส่งข้อความแชท
+// ==========================================
+// 3. ระบบแชท (Chat System - อัปเดตใหม่)
+// ==========================================
+
+// ส่งข้อความ
 exports.sendMessage = async (req, res) => {
     const { sender_id, receiver_id, content } = req.body;
     try {
@@ -136,13 +133,59 @@ exports.sendMessage = async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// 8. ดึงประวัติแชท
+// ดึงประวัติแชทระหว่างผู้ใช้ 2 คน (แก้ไขให้ดึงตาม ID คู่สนทนา)
 exports.getMessages = async (req, res) => {
+    const { userId, partnerId } = req.params; // รับ ID ของเรากับคู่สนทนา
     try {
         const { rows } = await db.query(
-            'SELECT * FROM messages WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1) ORDER BY created_at ASC',
-            [req.params.userId, 1] // 1 = Admin ID
+            `SELECT * FROM messages 
+             WHERE (sender_id = $1 AND receiver_id = $2) 
+                OR (sender_id = $2 AND receiver_id = $1) 
+             ORDER BY created_at ASC`,
+            [userId, partnerId]
         );
         res.json(rows);
     } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+// [เพิ่มใหม่] ดึงรายชื่อคู่สนทนาล่าสุด (สำหรับ Popup แชทหน้าแรก)
+exports.getRecentChats = async (req, res) => {
+    const userId = req.params.userId;
+    try {
+        // Query ที่ค่อนข้างซับซ้อน: ดึงคู่สนทนาที่ไม่ซ้ำกัน พร้อมข้อความล่าสุด และข้อมูลโปรไฟล์
+        const { rows } = await db.query(`
+            WITH LatestMessages AS (
+                SELECT DISTINCT ON (partner_id) 
+                    partner_id, 
+                    content, 
+                    created_at, 
+                    sender_id
+                FROM (
+                    SELECT 
+                        CASE WHEN sender_id = $1 THEN receiver_id ELSE sender_id END AS partner_id,
+                        content, 
+                        created_at, 
+                        sender_id
+                    FROM messages
+                    WHERE sender_id = $1 OR receiver_id = $1
+                ) AS msg
+                ORDER BY partner_id, created_at DESC
+            )
+            SELECT 
+                lm.partner_id, 
+                u.username, 
+                u.profile_pic, 
+                lm.content, 
+                lm.created_at, 
+                lm.sender_id
+            FROM LatestMessages lm
+            JOIN users u ON lm.partner_id = u.id
+            ORDER BY lm.created_at DESC
+        `, [userId]);
+        
+        res.json(rows);
+    } catch (err) { 
+        console.error("Get Recent Chats Error:", err);
+        res.status(500).json({ error: err.message }); 
+    }
 };
