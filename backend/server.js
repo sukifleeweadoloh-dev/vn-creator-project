@@ -8,7 +8,7 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const app = express();
 
 // ==========================================
-// 1. ตั้งค่า CORS (แก้ไขให้รองรับ Vercel ทุก URL)
+// 1. ตั้งค่า CORS (ความปลอดภัย)
 // ==========================================
 const allowedOrigins = [
     'http://localhost:5500', 
@@ -19,9 +19,7 @@ const allowedOrigins = [
 
 app.use(cors({
     origin: function (origin, callback) {
-        // 1. อนุญาต request ที่ไม่มี origin (เช่น Postman)
-        // 2. อนุญาตถ้าอยู่ใน allowedOrigins
-        // 3. อนุญาตทุก URL ที่ลงท้ายด้วย .vercel.app (เพื่อรองรับ URL ใหม่ๆ ของ Vercel)
+        // อนุญาตถ้าไม่มี origin (เช่น Postman) หรืออยู่ในรายการ หรือลงท้ายด้วย .vercel.app
         if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
             callback(null, true);
         } else {
@@ -44,14 +42,14 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
-        folder: 'vn_creator_uploads', // ชื่อโฟลเดอร์ใน Cloudinary
+        folder: 'vn_creator_uploads',
         allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'gif'],
     },
 });
 
 const upload = multer({ storage: storage });
 
-// Route สำหรับอัปโหลดรูปภาพ (พร้อมระบบดักจับ Error)
+// Route สำหรับอัปโหลดรูปภาพ
 app.post('/api/upload', (req, res) => {
     upload.single('image')(req, res, function (err) {
         if (err) {
@@ -61,7 +59,6 @@ app.post('/api/upload', (req, res) => {
         if (!req.file) {
             return res.status(400).json({ error: 'ไม่มีไฟล์อัปโหลด' });
         }
-        // Cloudinary จะคืนค่า URL แบบเต็มมาให้ใน req.file.path
         res.json({ url: req.file.path }); 
     });
 });
@@ -72,6 +69,9 @@ app.post('/api/upload', (req, res) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/novels', require('./routes/novel'));
 app.use('/api/users', require('./routes/user'));
+
+// [เพิ่มใหม่] Route สำหรับ Admin Dashboard
+app.use('/api/admin', require('./routes/admin'));
 
 // ==========================================
 // 4. เริ่มต้น Server
