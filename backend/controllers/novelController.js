@@ -20,7 +20,7 @@ exports.getFeedNovels = async (req, res) => {
 exports.getNovelForPlay = async (req, res) => {
     try {
         const novelId = req.params.id;
-        const userId = req.query.userId; // รับ userId จาก Frontend (ถ้ามี)
+        const userId = req.query.userId; 
         
         const { rows: novelCheck } = await db.query('SELECT id, author_id, tags FROM novels WHERE id = $1', [novelId]);
         if (novelCheck.length === 0) return res.status(404).json({ error: "ไม่พบนิยายเรื่องนี้" });
@@ -29,7 +29,8 @@ exports.getNovelForPlay = async (req, res) => {
         
         const { rows: chapters } = await db.query('SELECT id, title, next_chapter_name FROM chapters WHERE novel_id = $1 ORDER BY order_index ASC', [novelId]);
         
-        // ดึง Pages และ Objects (เพิ่ม storyline_x, storyline_y, target_page_id)
+        // ดึง Pages และ Objects 
+        // (หมายเหตุ: text_content จะเก็บ JSON string ของ options ถ้าเป็น choice)
         const { rows: pages } = await db.query(`
             SELECT p.id, p.background_image, p.storyline_x, p.storyline_y,
                    COALESCE(json_agg(
@@ -47,7 +48,6 @@ exports.getNovelForPlay = async (req, res) => {
             ORDER BY p.order_index ASC
         `, [novelId]);
 
-        // ดึงประวัติการอ่าน (ถ้ามี userId ส่งมา)
         let readingProgress = [];
         if (userId) {
             const { rows: progress } = await db.query(
@@ -62,16 +62,15 @@ exports.getNovelForPlay = async (req, res) => {
             chapters, 
             author_id: novelCheck[0].author_id,
             tags: novelCheck[0].tags,
-            readingProgress // ส่งประวัติการอ่านกลับไปให้ Frontend
+            readingProgress
         });
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// 4. ดึงข้อมูลเฉพาะสำหรับวาดหน้า Story Line (เบาและเร็วขึ้น)
+// 4. ดึงข้อมูลเฉพาะสำหรับวาดหน้า Story Line
 exports.getStorylineData = async (req, res) => {
     try {
         const novelId = req.params.id;
-        // ดึงเฉพาะหน้าที่มีอยู่ในเรื่องนี้
         const { rows: pages } = await db.query(`
             SELECT p.id, p.order_index, p.storyline_x, p.storyline_y,
                    (SELECT json_agg(json_build_object('id', o.id, 'text', o.text_content, 'target_page_id', o.target_page_id))
@@ -82,14 +81,13 @@ exports.getStorylineData = async (req, res) => {
             ORDER BY p.order_index ASC
         `, [novelId]);
 
-        // ดึงข้อมูล Chapter เพื่อทำลูกศรสีทอง
         const { rows: chapters } = await db.query('SELECT title, next_chapter_name FROM chapters WHERE novel_id = $1', [novelId]);
 
         res.json({ pages, chapters });
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// 5. บันทึก/อัปเดตนิยาย (แก้บัค Map ID ให้ Choices)
+// 5. บันทึก/อัปเดตนิยาย (บันทึก Choices ให้ถูกต้อง)
 exports.saveNovel = async (req, res) => {
     const { title, author_id, pages, novel_id, cover_image, tags } = req.body; 
     const client = await db.connect();
@@ -109,9 +107,9 @@ exports.saveNovel = async (req, res) => {
         const chapRes = await client.query('INSERT INTO chapters (novel_id, title, order_index) VALUES ($1, $2, $3) RETURNING id', [novelId, 'ตอนที่ 1', 1]);
         const chapterId = chapRes.rows[0].id;
 
-        const pageIdMap = {}; // เก็บ Map ระหว่าง tempId -> realDbId
+        const pageIdMap = {}; 
 
-        // ลูปที่ 1: บันทึก Pages ทั้งหมดก่อน เพื่อให้ได้ ID จริง
+        // รอบที่ 1: บันทึก Pages เพื่อเอา ID จริง
         for (let i = 0; i < pages.length; i++) {
             const page = pages[i];
             const pageRes = await client.query(
@@ -120,23 +118,28 @@ exports.saveNovel = async (req, res) => {
             );
             const realPageId = pageRes.rows[0].id;
             
-            // เก็บ ID จริงไว้ใช้ต่อ
             pageIdMap[page.tempId || page.id] = realPageId; 
             page.realId = realPageId; 
         }
 
-        // ลูปที่ 2: บันทึก Objects (เพื่อให้รู้ target_page_id ที่ถูกต้อง)
+        // รอบที่ 2: บันทึก Objects (Map target_page_id สำหรับ Choice)
         for (let page of pages) {
             for (let obj of page.objects) {
-                let realTargetId = null;
-                // ถ้าเป็น Choice และมี target_temp_id ส่งมา ให้แปลงเป็น ID จริง
-                if (obj.type === 'choice' && obj.target_temp_id) {
-                    realTargetId = pageIdMap[obj.target_temp_id] || null;
+                let textContent = obj.text || null;
+                
+                // ถ้าเป็น Choice ให้แปลง options เป็น JSON String และ Map ID เป้าหมาย
+                if (obj.type === 'choice') {
+                    const mappedOptions = (obj.options || []).map(opt => ({
+                        label: opt.label,
+                        text: opt.text,
+                        target_page_id: pageIdMap[opt.target_temp_id] || null
+                    }));
+                    textContent = JSON.stringify(mappedOptions);
                 }
 
                 await client.query(
                     'INSERT INTO objects (page_id, type, image_url, text_content, x_pos, y_pos, z_index, dialogue_order, target_page_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-                    [page.realId, obj.type, obj.image || null, obj.text || null, obj.x, obj.y, obj.type === 'dialogue' ? 100 : 10, obj.order || 1, realTargetId]
+                    [page.realId, obj.type, obj.image || null, textContent, obj.x, obj.y, obj.type === 'dialogue' ? 100 : 10, obj.order || 1, null]
                 );
             }
         }
@@ -152,7 +155,7 @@ exports.saveNovel = async (req, res) => {
     }
 };
 
-// 6. บันทึกประวัติการอ่าน (Reading Progress)
+// 6. บันทึกประวัติการอ่าน
 exports.saveReadingProgress = async (req, res) => {
     const { userId, pageId, novelId } = req.body;
     if (!userId || !pageId || !novelId) return res.status(400).json({ error: "ข้อมูลไม่ครบถ้วน" });
@@ -166,7 +169,7 @@ exports.saveReadingProgress = async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// 7. บันทึกการให้ดาว (Review) และค้นหา
+// 7. รีวิวและค้นหา
 exports.addReview = async (req, res) => {
     const { rating, comment, user_id } = req.body;
     if (!user_id) return res.status(400).json({ error: "กรุณาเข้าสู่ระบบก่อนให้คะแนน" });
@@ -184,7 +187,7 @@ exports.searchNovels = async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// 8. ระบบคอมเมนต์
+// 8. คอมเมนต์
 exports.getComments = async (req, res) => {
     try {
         const { rows } = await db.query(`
