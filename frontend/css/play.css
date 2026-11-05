@@ -2,6 +2,7 @@ body {
     margin: 0;
     overflow: hidden;
     background: #000;
+    font-family: 'Prompt', sans-serif;
 }
 
 #reader-container {
@@ -13,7 +14,9 @@ body {
     background-position: center;
 }
 
-/* เลเยอร์ตัวละคร (z-index ต่ำ) */
+/* ========================================== */
+/* เลเยอร์ (Layers) */
+/* ========================================== */
 #page-layer {
     position: absolute;
     top: 0;
@@ -23,7 +26,6 @@ body {
     z-index: 10;
 }
 
-/* เลเยอร์บทพูดและตัวเลือก (z-index สูง) */
 #dialogue-layer {
     position: absolute;
     top: 0;
@@ -31,8 +33,96 @@ body {
     width: 100%;
     height: 100%;
     z-index: 100;
-    pointer-events: none; /* ให้คลิกทะลุไปที่ reader-container เพื่อไปบทถัดไป */
+    pointer-events: none; /* ให้คลิกทะลุไปที่ reader-container */
 }
+
+/* ========================================== */
+/* Top Bar Overlay (แถบด้านบน) */
+/* ========================================== */
+#top-bar-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 1000;
+    pointer-events: none; /* ให้คลิกทะลุ */
+    box-sizing: border-box;
+}
+
+#top-bar-overlay > * {
+    pointer-events: auto; /* เปิดให้คลิกได้เฉพาะส่วนที่ต้องการ */
+}
+
+.btn-back-home {
+    color: white;
+    text-decoration: none;
+    background: rgba(0,0,0,0.5);
+    padding: 8px 16px;
+    border-radius: 20px;
+    backdrop-filter: blur(5px);
+    font-size: 14px;
+    transition: background 0.2s;
+}
+.btn-back-home:hover { background: rgba(0,0,0,0.7); }
+
+.author-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0,0,0,0.5);
+    padding: 5px 15px 5px 5px;
+    border-radius: 25px;
+    cursor: pointer;
+    backdrop-filter: blur(5px);
+    transition: background 0.2s;
+}
+.author-info:hover { background: rgba(0,0,0,0.7); }
+
+.author-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #6366f1;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 14px;
+    object-fit: cover;
+}
+
+.author-name {
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-action {
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: 'Prompt';
+    font-size: 14px;
+    backdrop-filter: blur(5px);
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.btn-action:hover { background: rgba(0,0,0,0.7); }
 
 /* ========================================== */
 /* กล่องบทพูด */
@@ -53,7 +143,7 @@ body {
     line-height: 1.5;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     border: 1px solid rgba(255,255,255,0.2);
-    pointer-events: auto; /* ให้สามารถคลิกในกล่องได้ */
+    pointer-events: auto;
     text-align: center;
     animation: fadeIn 0.3s ease-out;
 }
@@ -64,11 +154,11 @@ body {
 }
 
 /* ========================================== */
-/* [เพิ่มใหม่] กล่องตัวเลือก (Choice Container) */
+/* กล่องตัวเลือก (Choice) */
 /* ========================================== */
 .choice-container-reader {
-    /* สไตล์พื้นฐานจะมาจาก JS แต่เราจะมาเติมความสวยงาม */
     animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: auto !important;
 }
 
 @keyframes popIn {
@@ -77,7 +167,6 @@ body {
 }
 
 .choice-btn {
-    /* Override Inline Styles จาก JS เพื่อความสวยงาม */
     background: rgba(255, 255, 255, 0.95) !important;
     color: #1e293b !important;
     border: 2px solid #6366f1 !important;
@@ -100,10 +189,6 @@ body {
     box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5) !important;
 }
 
-.choice-btn:active {
-    transform: translateY(0) scale(0.98) !important;
-}
-
 /* ========================================== */
 /* ตัวละคร */
 /* ========================================== */
@@ -124,7 +209,7 @@ body {
 /* ========================================== */
 #rating-box {
     position: absolute;
-    top: 20px;
+    top: 75px; /* ขยับลงมาไม่ให้ทับ Top Bar */
     right: 20px;
     background: rgba(255,255,255,0.1);
     backdrop-filter: blur(5px);
@@ -134,7 +219,7 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-    z-index: 1000;
+    z-index: 999;
     border: 1px solid rgba(255,255,255,0.2);
 }
 
@@ -150,6 +235,85 @@ body {
 }
 
 /* ========================================== */
+/* Modal คอมเมนต์ */
+/* ========================================== */
+#comment-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px);
+}
+
+.comment-modal-content {
+    background: white;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.comment-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.comment-header h3 { margin: 0; color: #1e293b; }
+
+.close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; }
+
+#comment-list {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    background: #f8fafc;
+}
+
+.comment-item { display: flex; gap: 10px; }
+
+.comment-avatar {
+    width: 35px; height: 35px; border-radius: 50%;
+    background: #6366f1; color: white;
+    display: flex; justify-content: center; align-items: center;
+    font-size: 14px; font-weight: bold; flex-shrink: 0;
+    object-fit: cover;
+}
+
+.comment-body {
+    background: white; padding: 10px 15px; border-radius: 10px;
+    border: 1px solid #e2e8f0; font-size: 14px; color: #1e293b;
+}
+
+.comment-author-name { font-weight: 600; font-size: 13px; color: #6366f1; margin-bottom: 3px; }
+
+.comment-input-area {
+    padding: 15px 20px; border-top: 1px solid #e2e8f0; display: flex; gap: 10px;
+}
+
+#comment-input {
+    flex: 1; padding: 10px 15px; border: 1px solid #cbd5e1;
+    border-radius: 20px; outline: none; font-family: 'Prompt';
+}
+
+#btn-send-comment {
+    padding: 10px 20px; background: #6366f1; color: white;
+    border: none; border-radius: 20px; font-weight: 600; cursor: pointer;
+    font-family: 'Prompt';
+}
+
+/* ========================================== */
 /* Responsive Design (สำหรับมือถือและแท็บเล็ต) */
 /* ========================================== */
 
@@ -158,7 +322,6 @@ body {
     .character-sprite img {
         max-height: 300px; 
     }
-    
     .dialogue-box {
         padding: 20px;
         font-size: 20px;
@@ -169,9 +332,30 @@ body {
 
 /* สำหรับมือถือ (<= 768px) */
 @media (max-width: 768px) {
-    /* ปรับกล่องให้ดาวให้เล็กลงและไม่บังจอ */
+    /* ปรับ Top Bar */
+    #top-bar-overlay {
+        padding: 10px;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    #top-bar-overlay > div {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .author-name {
+        display: none; /* ซ่อนชื่อคนเขียนบนมือถือ */
+    }
+
+    .btn-action {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    /* ย้าย Rating Box ลงมา */
     #rating-box {
-        top: 10px;
+        top: 120px;
         right: 10px;
         padding: 5px 10px;
         gap: 5px;
@@ -187,20 +371,17 @@ body {
         font-size: 18px; 
     }
 
-    /* ปรับปุ่มติดตาม */
     .follow-btn {
         padding: 5px 10px;
         font-size: 12px;
-        margin-left: 5px;
         min-width: 90px;
     }
 
-    /* ลดขนาดตัวละครลงอีก */
+    /* ปรับตัวละครและบทพูด */
     .character-sprite img {
         max-height: 250px; 
     }
 
-    /* กล่องบทพูดกว้างขึ้น และตัวอักษรเล็กลง */
     .dialogue-box {
         bottom: 10%; 
         left: 5%;
@@ -210,7 +391,7 @@ body {
         border-radius: 10px;
     }
 
-    /* [ปรับใหม่] ปุ่มตัวเลือกให้กว้างเกือบเต็มจอบนมือถือ */
+    /* ปรับปุ่มตัวเลือก */
     .choice-btn {
         width: 280px !important;
         padding: 15px 20px !important;

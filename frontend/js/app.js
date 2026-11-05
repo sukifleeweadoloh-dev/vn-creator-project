@@ -1,454 +1,349 @@
 // ==========================================
-// Play Novel Logic
+// Safe Initialization
 // ==========================================
-
-const urlParams = new URLSearchParams(window.location.search);
-const novelId = urlParams.get('id') || 1;
-
-let chapterData = [];
-let currentPage = 0;
-let currentDialogue = 0;
-let novelAuthorId = null;
-let currentUser = JSON.parse(localStorage.getItem('user'));
-
-const pageLayer = document.getElementById('page-layer');
-const dialogueLayer = document.getElementById('dialogue-layer');
-const readerContainer = document.getElementById('reader-container');
-
-// ตรวจสอบว่ามีการโหลด config.js หรือยัง
-if (typeof API === 'undefined') {
-    console.error("❌ ไม่พบตัวแปร API กรุณาตรวจสอบว่ามีการโหลด js/config.js ใน HTML หรือไม่");
-}
-
-// ==========================================
-// 1. โหลดข้อมูลนิยายจาก Database
-// ==========================================
-async function loadNovel() {
-    try {
-        // ส่ง userId ไปด้วยเพื่อดึงประวัติการอ่าน (ถ้ามี)
-        const url = currentUser ? `${API}/novels/play/${novelId}?userId=${currentUser.id}` : `${API}/novels/play/${novelId}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("ไม่สามารถโหลดข้อมูลได้");
-        
-        const data = await res.json();
-        
-        if (!data.pages || data.pages.length === 0) {
-            alert("ไม่พบข้อมูลเนื้อหาในนิยายเรื่องนี้");
-            window.location.href = 'index.html';
-            return;
-        }
-
-        chapterData = data.pages;
-        novelAuthorId = data.author_id;
-
-        // โหลดข้อมูลโปรไฟล์นักเขียน (ถ้ามี)
-        if (novelAuthorId) {
-            loadAuthorInfo(novelAuthorId);
-        }
-
-        setupFollowButton();
-        renderPage();
-    } catch(e) { 
-        console.error(e);
-        alert("โหลดนิยายไม่สำเร็จ กรุณาตรวจสอบเซิร์ฟเวอร์"); 
-    }
-}
-
-// ==========================================
-// 2. บันทึกประวัติการอ่าน
-// ==========================================
-async function saveReadingProgress(pageId) {
-    if (!currentUser) return;
-    try {
-        await fetch(`${API}/novels/progress`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId: currentUser.id, novelId: novelId, pageId: pageId })
-        });
-    } catch(e) { console.error("Save progress error", e); }
-}
-
-// ==========================================
-// 3. ระบบแสดงผลหน้าและบทพูด
-// ==========================================
-function renderPage() {
-    pageLayer.innerHTML = '';
-    dialogueLayer.innerHTML = '';
+function initApp() {
+    console.log("✅ app.js เริ่มทำงาน");
     
-    const page = chapterData[currentPage];
-    
-    if (!page) {
-        alert("จบตอนแล้ว!");
-        window.location.href = 'index.html';
+    if (typeof API === 'undefined') {
+        console.error("❌ ไม่พบตัวแปร API กรุณาตรวจสอบว่ามีการโหลด js/config.js ใน HTML หรือไม่");
         return;
     }
 
-    // พื้นหลัง (ถ้าไม่มีรูปให้ใช้สีดำ)
-    readerContainer.style.background = page.background_image 
-        ? `url(${page.background_image}) center/cover` 
-        : 'black';
+    // ------------------------------------------
+    // อ่านข้อมูลผู้ใช้อย่างปลอดภัย
+    // ------------------------------------------
+    let currentUser = null;
+    try {
+        const userStr = localStorage.getItem('user');
+        if (userStr && userStr !== 'undefined' && userStr !== 'null') {
+            currentUser = JSON.parse(userStr);
+        }
+    } catch (e) {
+        console.error("❌ ข้อมูลใน localStorage เสีย กำลังล้าง...", e);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+    }
 
-    // วาดตัวละคร (z-index 10)
-    const characters = (page.objects || []).filter(o => o.type === 'character');
-    characters.forEach(c => {
-        const el = document.createElement('div');
-        el.className = 'character-sprite';
-        el.innerHTML = `<img src="${c.image}" alt="character">`;
-        el.style.left = c.x + 'px';
-        el.style.top = c.y + 'px';
-        pageLayer.appendChild(el);
+    const navLinks = document.querySelectorAll('.nav-link');
+    const appContent = document.getElementById('dynamic-view');
+    const feedContainer = document.getElementById('feed-container');
+    
+    // Elements สำหรับเมนู Burger และ Popup แชท
+    const burgerBtn = document.getElementById('burger-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const chatListModal = document.getElementById('chat-list-modal');
+    const btnOpenChat = document.getElementById('btn-open-chat');
+    const closeChatModal = document.getElementById('close-chat-modal');
+    const chatListContainer = document.getElementById('chat-list-container');
+
+    // ------------------------------------------
+    // แสดงปุ่ม Admin Dashboard ถ้าเป็นแอดมิน
+    // ------------------------------------------
+    if (currentUser && currentUser.role === 'admin') {
+        const adminBtn = document.getElementById('btn-admin-dashboard');
+        const adminBtnMobile = document.getElementById('btn-admin-dashboard-mobile');
+        
+        if (adminBtn) adminBtn.style.display = 'inline-block';
+        if (adminBtnMobile) adminBtnMobile.style.display = 'block';
+    }
+
+    // ------------------------------------------
+    // ระบบเมนู Burger (มือถือ)
+    // ------------------------------------------
+    if (burgerBtn && mobileMenu) {
+        burgerBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('show');
+        });
+    }
+
+    // ------------------------------------------
+    // ระบบ Popup แชท (Chat History)
+    // ------------------------------------------
+    if (btnOpenChat) {
+        btnOpenChat.addEventListener('click', () => {
+            if (!currentUser) {
+                alert("กรุณาเข้าสู่ระบบเพื่อดูข้อความ");
+                return;
+            }
+            if (chatListModal) chatListModal.style.display = 'flex';
+            loadRecentChats();
+        });
+    }
+
+    if (closeChatModal) {
+        closeChatModal.addEventListener('click', () => {
+            if (chatListModal) chatListModal.style.display = 'none';
+        });
+    }
+
+    if (chatListModal) {
+        chatListModal.addEventListener('click', (e) => {
+            if (e.target === chatListModal) {
+                chatListModal.style.display = 'none';
+            }
+        });
+    }
+
+    // ฟังก์ชันโหลดประวัติแชทล่าสุด
+    async function loadRecentChats() {
+        if (!chatListContainer) return;
+        chatListContainer.innerHTML = '<p style="text-align:center; color:#94a3b8;">กำลังโหลด...</p>';
+
+        try {
+            const res = await fetch(`${API}/users/recent-chats/${currentUser.id}`);
+            if (!res.ok) throw new Error("โหลดข้อมูลไม่สำเร็จ");
+            
+            const chats = await res.json();
+            
+            if (chats.length === 0) {
+                chatListContainer.innerHTML = '<p style="text-align:center; color:#94a3b8; padding:20px;">ยังไม่มีประวัติการแชท</p>';
+                return;
+            }
+
+            chatListContainer.innerHTML = chats.map(chat => {
+                const isMyMessage = chat.sender_id === currentUser.id;
+                const prefix = isMyMessage ? 'คุณ: ' : '';
+                const avatarHtml = chat.profile_pic 
+                    ? `<img src="${chat.profile_pic}" class="chat-avatar" style="object-fit:cover;">`
+                    : `<div class="chat-avatar">${chat.username.charAt(0).toUpperCase()}</div>`;
+                const date = new Date(chat.created_at);
+                const timeStr = date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+
+                return `
+                    <div class="chat-list-item" onclick="window.location.href='chat.html?partnerId=${chat.partner_id}'">
+                        ${avatarHtml}
+                        <div class="chat-info">
+                            <div class="chat-name">${chat.username}</div>
+                            <div class="chat-last-msg">${prefix}${chat.content}</div>
+                        </div>
+                        <div class="chat-time">${timeStr}</div>
+                    </div>
+                `;
+            }).join('');
+
+        } catch (err) {
+            console.error("Chat List Error:", err);
+            chatListContainer.innerHTML = '<p style="text-align:center; color:red;">ไม่สามารถโหลดข้อมูลได้</p>';
+        }
+    }
+
+    // ------------------------------------------
+    // ระบบ เปิด-ปิด กล่องแชทลอย
+    // ------------------------------------------
+    const chatWidget = document.getElementById('chat-widget');
+    const chatHeader = document.getElementById('chat-header');
+    const chatToggleIcon = document.getElementById('chat-toggle-icon');
+
+    if (chatHeader && chatWidget && chatToggleIcon) {
+        chatHeader.addEventListener('click', () => {
+            chatWidget.classList.toggle('open');
+            chatToggleIcon.innerText = chatWidget.classList.contains('open') ? '▲' : '▼';
+        });
+    }
+
+    // ------------------------------------------
+    // ฟังก์ชันสลับหน้า (SPA)
+    // ------------------------------------------
+    function navigateTo(pageId) {
+        navLinks.forEach(link => {
+            if(link.dataset.target === pageId) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+
+        if (mobileMenu) mobileMenu.classList.remove('show');
+
+        if (pageId === 'home') {
+            if (appContent) appContent.style.display = 'none';
+            if (feedContainer) feedContainer.style.display = 'block';
+        } else {
+            if (appContent) {
+                if (typeof viewsHTML === 'undefined' || !viewsHTML[pageId]) {
+                    appContent.innerHTML = `<h1 style="color:red; padding:20px;">ไม่พบหน้านี้ (${pageId})</h1>`;
+                } else {
+                    appContent.innerHTML = viewsHTML[pageId];
+                }
+                appContent.style.display = 'block';
+            }
+            if (feedContainer) feedContainer.style.display = 'none'; 
+            
+            loadViewData(pageId); 
+        }
+    }
+
+    // ------------------------------------------
+    // ฟังก์ชันโหลดข้อมูลแต่ละหน้า
+    // ------------------------------------------
+    function loadViewData(pageId) {
+        const user = currentUser || { id: 0 }; 
+
+        if (pageId === 'popular') {
+            fetch(`${API}/novels/popular`)
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('popular-list');
+                    if(!container) return;
+                    if (!Array.isArray(data)) {
+                        container.innerHTML = `<p style="color:red;">เกิดข้อผิดพลาด: ${data.error || 'ไม่ทราบสาเหตุ'}</p>`;
+                        return;
+                    }
+                    if (data.length === 0) {
+                        container.innerHTML = '<p style="color:#64748b;">ยังไม่มีนิยายในระบบ</p>';
+                        return;
+                    }
+                    container.innerHTML = data.map(n => `
+                        <div style="border:1px solid #ddd; padding:20px; border-radius:15px; width:200px; cursor:pointer; background:#fff;" onclick="window.location.href='play.html?id=${n.id}'">
+                            <h1 style="text-align:center; font-size:40px;">${n.cover_emoji}</h1>
+                            <h4 style="color:#1e293b;">${n.title}</h4>
+                            <p style="color:#64748b; font-size:14px;">โดย: ${n.username}</p>
+                            <p style="color:#6366f1; font-size:14px;">👁️ ${n.views} วิว</p>
+                        </div>
+                    `).join('');
+                }).catch(err => console.error(err));
+        }
+
+        if (pageId === 'following') {
+            const container = document.getElementById('following-list');
+            if(!container) return;
+            if(!currentUser) {
+                container.innerHTML = '<p style="color:#64748b;">กรุณาเข้าสู่ระบบเพื่อดูรายชื่อที่ติดตาม</p>';
+                return;
+            }
+            fetch(`${API}/users/following/${user.id}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!Array.isArray(data)) return;
+                    if(data.length === 0) {
+                        container.innerHTML = '<p style="color:#64748b;">คุณยังไม่ได้ติดตามใคร</p>';
+                    } else {
+                        container.innerHTML = data.map(u => `
+                            <div style="border:1px solid #ddd; padding:20px; border-radius:15px; width:150px; text-align:center; background:#fff;">
+                                <div style="width:50px; height:50px; background:#6366f1; color:white; border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:24px; margin:0 auto 10px;">
+                                    ${u.username.charAt(0).toUpperCase()}
+                                </div>
+                                <h4 style="color:#1e293b;">${u.username}</h4>
+                            </div>
+                        `).join('');
+                    }
+                }).catch(err => console.error(err));
+        }
+    }
+
+    // ------------------------------------------
+    // ผูก Event ให้เมนูทุกปุ่ม
+    // ------------------------------------------
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const target = e.currentTarget.dataset.target;
+            if (target === 'profile') {
+                window.location.href = 'profile.html';
+                return;
+            }
+            if(target) navigateTo(target);
+        });
     });
 
-    // บันทึกประวัติการอ่าน
-    saveReadingProgress(page.id);
+    // ------------------------------------------
+    // ระบบค้นหา
+    // ------------------------------------------
+    window.performSearch = function() {
+        const query = document.getElementById('search-input').value.trim();
+        if (!query) return alert("กรุณาพิมพ์คำที่ต้องการค้นหา");
 
-    currentDialogue = 0;
-    showDialogue();
-}
+        const resultsContainer = document.getElementById('search-results');
+        resultsContainer.innerHTML = '<p>กำลังค้นหา...</p>';
 
-function showDialogue() {
-    const page = chapterData[currentPage];
-    if (!page) return;
-
-    dialogueLayer.innerHTML = ''; 
-    
-    const dialogues = (page.objects || [])
-        .filter(o => o.type === 'dialogue')
-        .sort((a,b) => a.order - b.order);
-
-    const choices = (page.objects || []).filter(o => o.type === 'choice');
-
-    if (currentDialogue < dialogues.length) {
-        const d = dialogues[currentDialogue];
-        const box = document.createElement('div');
-        box.className = 'dialogue-box';
-        box.innerText = d.text || "..."; 
-        dialogueLayer.appendChild(box);
-    } else {
-        // ถ้าบทพูดหมดแล้ว
-        if (choices.length > 0) {
-            // ถ้ามี Choice ให้แสดงตัวเลือกและหยุดรอให้ผู้เล่นคลิก
-            renderChoices(choices[0]);
-        } else {
-            // ถ้าไม่มี Choice ให้ไปหน้าถัดไปอัตโนมัติ
-            currentPage++;
-            renderPage();
-        }
-    }
-}
-
-// ==========================================
-// 4. ระบบแสดงตัวเลือก (Choices)
-// ==========================================
-function renderChoices(choiceObj) {
-    const container = document.createElement('div');
-    container.className = 'choice-container-reader';
-    
-    // สไตล์พื้นฐาน (In-line เพื่อให้ทำงานได้ทันทีโดยไม่ต้องรอ CSS)
-    container.style.position = 'absolute';
-    container.style.top = '50%';
-    container.style.left = '50%';
-    container.style.transform = 'translate(-50%, -50%)';
-    container.style.display = 'flex';
-    container.style.flexDirection = 'column';
-    container.style.gap = '15px';
-    container.style.zIndex = '200';
-
-    // ดึงข้อมูล options (อาจจะมาจาก DB โดยตรง หรือ parse จาก JSON)
-    let options = choiceObj.options;
-    if (typeof options === 'string') {
-        try { options = JSON.parse(options); } catch(e) { options = []; }
-    }
-
-    // ถ้าไม่มี options ให้ถือว่าเป็นปุ่ม "ไปต่อ" ธรรมดา
-    if (!options || options.length === 0) {
-        const btn = document.createElement('button');
-        btn.innerText = "▶ ดำเนินเรื่องต่อ";
-        btn.style.padding = '15px 30px';
-        btn.style.fontSize = '18px';
-        btn.style.borderRadius = '10px';
-        btn.style.background = 'rgba(255,255,255,0.9)';
-        btn.style.cursor = 'pointer';
-        btn.style.border = '2px solid #6366f1';
-        btn.style.fontFamily = 'Prompt';
-        btn.onclick = (e) => {
-            e.stopPropagation();
-            currentPage++;
-            renderPage();
-        };
-        container.appendChild(btn);
-    } else {
-        // สร้างปุ่มสำหรับแต่ละ option (A, B, C...)
-        options.forEach(opt => {
-            const btn = document.createElement('button');
-            btn.className = 'choice-btn';
-            btn.innerText = `${opt.label || 'ตัวเลือก'}. ${opt.text || ''}`;
-            btn.style.padding = '15px 30px';
-            btn.style.fontSize = '18px';
-            btn.style.borderRadius = '10px';
-            btn.style.background = 'rgba(255,255,255,0.9)';
-            btn.style.cursor = 'pointer';
-            btn.style.border = '2px solid #6366f1';
-            btn.style.fontFamily = 'Prompt';
-            btn.style.transition = '0.2s';
-            
-            // Hover Effect
-            btn.onmouseover = () => btn.style.background = '#e0e7ff';
-            btn.onmouseout = () => btn.style.background = 'rgba(255,255,255,0.9)';
-
-            btn.onclick = (e) => {
-                e.stopPropagation(); // ป้องกัน Event ไหลไปที่ readerContainer
-                
-                // หาว่า target_page_id นี้คือหน้าไหน
-                const targetPageId = opt.target_page_id;
-                const targetIndex = chapterData.findIndex(p => p.id == targetPageId);
-
-                if (targetIndex !== -1) {
-                    currentPage = targetIndex;
-                    renderPage();
+        fetch(`${API}/novels/search?q=${encodeURIComponent(query)}`)
+            .then(r => r.json())
+            .then(data => {
+                if (!Array.isArray(data)) return;
+                if (data.length === 0) {
+                    resultsContainer.innerHTML = '<p style="color:#64748b;">ไม่พบนิยายที่ค้นหา</p>';
                 } else {
-                    // ถ้าหาไม่เจอ ให้แจ้งเตือนและไปหน้าถัดไป
-                    console.warn("ไม่พบหน้าเป้าหมาย:", targetPageId);
-                    currentPage++;
-                    renderPage();
+                    resultsContainer.innerHTML = data.map(n => `
+                        <div style="border:1px solid #ddd; padding:20px; border-radius:15px; width:200px; cursor:pointer; background:#fff;" onclick="window.location.href='play.html?id=${n.id}'">
+                            <h1 style="text-align:center; font-size:40px;">${n.cover_emoji}</h1>
+                            <h4 style="color:#1e293b;">${n.title}</h4>
+                        </div>
+                    `).join('');
                 }
-            };
-            container.appendChild(btn);
-        });
-    }
+            }).catch(err => console.error(err));
+    };
 
-    dialogueLayer.appendChild(container);
-}
-
-// คลิกทั้งจอเพื่อไปบทพูดถัดไป
-readerContainer.addEventListener('click', (e) => {
-    // ถ้าคลิกที่ดาว, ปุ่มติดตาม, Top bar, หรือกล่องตัวเลือก ไม่ต้องไปต่อ
-    if(e.target.classList.contains('star') || 
-       e.target.closest('.follow-btn') || 
-       e.target.closest('#top-bar-overlay') || 
-       e.target.closest('.choice-container-reader')) {
-        return;
-    }
-    
-    // ถ้ามี Choice แสดงอยู่ ห้ามให้คลิกทะลุไปหน้าถัดไป
-    if (document.querySelector('.choice-container-reader')) {
-        return;
-    }
-    
-    currentDialogue++;
-    showDialogue();
-});
-
-// ==========================================
-// 5. ระบบให้ดาว (Rating)
-// ==========================================
-function rate(score) {
-    if (!currentUser) {
-        alert("กรุณาเข้าสู่ระบบก่อนให้คะแนน");
-        window.location.href = 'login.html';
-        return;
-    }
-
-    const stars = document.querySelectorAll('.star');
-    stars.forEach((s, i) => s.innerText = i < score ? '★' : '☆');
-    
-    fetch(`${API}/novels/${novelId}/review`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ 
-            rating: score, 
-            comment: "",
-            user_id: currentUser.id
-        })
-    }).then(res => {
-        if(res.ok) alert(`ขอบคุณสำหรับการให้ ${score} ดาว!`);
-    }).catch(err => console.error("Review error:", err));
-}
-
-// ==========================================
-// 6. ระบบติดตามผู้เขียน (Follow Author)
-// ==========================================
-async function setupFollowButton() {
-    const followBtn = document.getElementById('btn-follow-author');
-    if (!followBtn) return;
-
-    if (!novelAuthorId) {
-        followBtn.style.display = 'none';
-        return;
-    }
-
-    if (!currentUser) {
-        followBtn.classList.remove('loading');
-        followBtn.disabled = false;
-        followBtn.innerHTML = '<span>+</span> ติดตามผู้เขียน';
-        followBtn.onclick = () => {
-            alert("กรุณาเข้าสู่ระบบก่อนติดตาม");
-            window.location.href = 'login.html';
-        };
-        return;
-    }
-
-    if (currentUser.id === novelAuthorId) {
-        followBtn.style.display = 'none';
-        return;
-    }
-
-    try {
-        const res = await fetch(`${API}/users/check-follow/${currentUser.id}/${novelAuthorId}`);
-        const data = await res.json();
-        
-        followBtn.classList.remove('loading');
-        followBtn.disabled = false;
-
-        if (data.isFollowing) {
-            followBtn.classList.add('followed');
-            followBtn.innerHTML = '✓ ติดตามแล้ว';
-        } else {
-            followBtn.innerHTML = '<span>+</span> ติดตามผู้เขียน';
-            followBtn.onclick = () => followAuthor(novelAuthorId);
-        }
-    } catch (err) {
-        console.error(err);
-        followBtn.classList.remove('loading');
-        followBtn.disabled = false;
-        followBtn.innerHTML = '<span>+</span> ติดตามผู้เขียน';
-    }
-}
-
-function followAuthor(authorId) {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if(!user) return alert("กรุณาล็อกอินก่อนติดตาม");
-
-    fetch(`${API}/users/follow`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ follower_id: user.id, following_id: authorId })
-    }).then(res => {
-        if(res.ok) {
-            const btn = document.getElementById('btn-follow-author');
-            if(btn) {
-                btn.classList.add('followed');
-                btn.innerHTML = '✓ ติดตามแล้ว';
-                btn.onclick = null;
-            }
-        }
-    }).catch(err => console.error("Follow error:", err));
-}
-
-// ==========================================
-// 7. ระบบคอมเมนต์, โปรไฟล์คนเขียน, ลิงก์ Story Line
-// ==========================================
-async function loadAuthorInfo(authorId) {
-    const authorNameEl = document.getElementById('author-name');
-    const authorAvatarEl = document.getElementById('author-avatar');
-
-    try {
-        const res = await fetch(`${API}/users/profile/${authorId}`);
-        if (!res.ok) throw new Error("โหลดโปรไฟล์ไม่ได้");
-        
-        const data = await res.json();
-        const author = data.user;
-
-        if (author) {
-            authorNameEl.innerText = author.username;
-            if (author.profile_pic) {
-                authorAvatarEl.innerHTML = `<img src="${author.profile_pic}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
-            } else {
-                authorAvatarEl.innerText = author.username.charAt(0).toUpperCase();
-            }
-        }
-    } catch (err) {
-        console.error(err);
-        authorNameEl.innerText = "ไม่พบผู้เขียน";
-    }
-}
-
-function goToAuthorProfile() {
-    if (novelAuthorId) window.location.href = `profile.html?id=${novelAuthorId}`;
-}
-
-function goToStoryline() {
-    window.location.href = `storyline-player.html?id=${novelId}`;
-}
-
-// ==========================================
-// Modal คอมเมนต์
-// ==========================================
-const commentModal = document.getElementById('comment-modal');
-const commentList = document.getElementById('comment-list');
-
-function openComments() {
-    commentModal.style.display = 'flex';
-    loadComments();
-}
-
-function closeComments() {
-    commentModal.style.display = 'none';
-}
-
-commentModal.addEventListener('click', (e) => {
-    if (e.target === commentModal) closeComments();
-});
-
-async function loadComments() {
-    commentList.innerHTML = '<p style="text-align:center; color:#94a3b8;">กำลังโหลด...</p>';
-    try {
-        const res = await fetch(`${API}/novels/${novelId}/comments`);
-        const comments = await res.json();
-
-        if (comments.length === 0) {
-            commentList.innerHTML = '<p style="text-align:center; color:#94a3b8;">ยังไม่มีคอมเมนต์ มาเป็นคนแรกกันเลย!</p>';
+    // ------------------------------------------
+    // ระบบแชท (กล่องลอยมุมขวาล่าง)
+    // ------------------------------------------
+    function loadChat() {
+        if (!document.getElementById('chat-box')) return;
+        if (!currentUser) {
+            document.getElementById('chat-box').innerHTML = '<p style="color:#94a3b8; text-align:center; font-size:12px;">กรุณาเข้าสู่ระบบเพื่อแชท</p>';
             return;
         }
-
-        commentList.innerHTML = comments.map(c => {
-            const avatar = c.profile_pic 
-                ? `<img src="${c.profile_pic}" class="comment-avatar">` 
-                : `<div class="comment-avatar">${c.username.charAt(0).toUpperCase()}</div>`;
-
-            return `
-                <div class="comment-item">
-                    ${avatar}
-                    <div class="comment-body">
-                        <div class="comment-author-name">${c.username}</div>
-                        <div>${c.content}</div>
+        fetch(`${API}/users/messages/${currentUser.id}/1`)
+            .then(r => r.json())
+            .then(msgs => {
+                if (!Array.isArray(msgs)) return; 
+                const box = document.getElementById('chat-box');
+                box.innerHTML = msgs.map(m => `
+                    <div style="margin:5px 0; text-align:${m.sender_id === currentUser.id ? 'right' : 'left'};">
+                        <span style="display:inline-block; padding:5px 10px; background:${m.sender_id === currentUser.id ? '#e0e7ff' : '#fee2e2'}; border-radius:10px;">
+                            ${m.content}
+                        </span>
                     </div>
-                </div>
-            `;
-        }).join('');
-    } catch (err) {
-        commentList.innerHTML = '<p style="text-align:center; color:red;">ไม่สามารถโหลดคอมเมนต์ได้</p>';
+                `).join('');
+                box.scrollTop = box.scrollHeight;
+            }).catch(err => console.error(err));
     }
+
+    function sendMsg() {
+        if (!currentUser) return alert("กรุณาเข้าสู่ระบบก่อนส่งข้อความ");
+        const input = document.getElementById('chat-input');
+        if (!input || !input.value.trim()) return;
+
+        fetch(`${API}/users/message`, {
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ sender_id: currentUser.id, receiver_id: 1, content: input.value })
+        }).then(() => { input.value = ''; loadChat(); }).catch(err => console.error(err));
+    }
+
+    // ------------------------------------------
+    // ระบบ Logout
+    // ------------------------------------------
+    function setupLogout() {
+        const logoutBtn = document.getElementById('btn-logout');
+        if (!logoutBtn) return;
+        if (currentUser) logoutBtn.style.display = 'inline-block';
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if(confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+            }
+        });
+    }
+
+    // ------------------------------------------
+    // เริ่มต้นระบบทั้งหมด
+    // ------------------------------------------
+    if (typeof initFeeds === 'function') initFeeds();
+    navigateTo('home');
+    loadChat();
+    setInterval(loadChat, 3000);
+
+    const sendBtn = document.getElementById('btn-send-chat');
+    if (sendBtn) sendBtn.addEventListener('click', sendMsg);
+
+    setupLogout();
 }
 
-document.getElementById('btn-send-comment').addEventListener('click', async () => {
-    if (!currentUser) return alert("กรุณาเข้าสู่ระบบก่อนแสดงความคิดเห็น");
-    const input = document.getElementById('comment-input');
-    const content = input.value.trim();
-    if (!content) return;
-
-    try {
-        const res = await fetch(`${API}/novels/${novelId}/comments`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ user_id: currentUser.id, content: content })
-        });
-        if (res.ok) {
-            input.value = '';
-            loadComments();
-        }
-    } catch (err) {
-        alert("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้");
-    }
-});
-
-document.getElementById('comment-input').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        document.getElementById('btn-send-comment').click();
-    }
-});
-
-// ==========================================
-// เริ่มต้นโหลดข้อมูล
-// ==========================================
-loadNovel();
+// เรียกใช้เมื่อ DOM พร้อม
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}

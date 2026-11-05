@@ -1,6 +1,6 @@
 const db = require('../db');
 
-// 1. ดึงนิยายยอดนิยม (เรียงตามยอดวิว)
+// 1. ดึงนิยายยอดนิยม
 exports.getPopular = async (req, res) => {
     try {
         const { rows } = await db.query('SELECT n.*, u.username FROM novels n JOIN users u ON n.author_id = u.id ORDER BY n.views DESC LIMIT 10');
@@ -8,7 +8,7 @@ exports.getPopular = async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// 2. ดึงนิยายแบบสุ่มสำหรับหน้า Feed (หน้าแรก)
+// 2. ดึงนิยายแบบสุ่มสำหรับหน้า Feed
 exports.getFeedNovels = async (req, res) => {
     try {
         const { rows } = await db.query('SELECT id, title, cover_image, cover_emoji FROM novels ORDER BY RANDOM() LIMIT 6');
@@ -16,7 +16,7 @@ exports.getFeedNovels = async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// 3. ดึงข้อมูลสำหรับหน้าเล่น (ดึงหน้า, Object, และประวัติการอ่าน)
+// 3. ดึงข้อมูลสำหรับหน้าเล่น
 exports.getNovelForPlay = async (req, res) => {
     try {
         const novelId = req.params.id;
@@ -29,8 +29,6 @@ exports.getNovelForPlay = async (req, res) => {
         
         const { rows: chapters } = await db.query('SELECT id, title, next_chapter_name FROM chapters WHERE novel_id = $1 ORDER BY order_index ASC', [novelId]);
         
-        // ดึง Pages และ Objects 
-        // (หมายเหตุ: text_content จะเก็บ JSON string ของ options ถ้าเป็น choice)
         const { rows: pages } = await db.query(`
             SELECT p.id, p.background_image, p.storyline_x, p.storyline_y,
                    COALESCE(json_agg(
@@ -109,7 +107,6 @@ exports.saveNovel = async (req, res) => {
 
         const pageIdMap = {}; 
 
-        // รอบที่ 1: บันทึก Pages เพื่อเอา ID จริง
         for (let i = 0; i < pages.length; i++) {
             const page = pages[i];
             const pageRes = await client.query(
@@ -122,12 +119,10 @@ exports.saveNovel = async (req, res) => {
             page.realId = realPageId; 
         }
 
-        // รอบที่ 2: บันทึก Objects (Map target_page_id สำหรับ Choice)
         for (let page of pages) {
             for (let obj of page.objects) {
                 let textContent = obj.text || null;
                 
-                // ถ้าเป็น Choice ให้แปลง options เป็น JSON String และ Map ID เป้าหมาย
                 if (obj.type === 'choice') {
                     const mappedOptions = (obj.options || []).map(opt => ({
                         label: opt.label,
@@ -206,4 +201,42 @@ exports.addComment = async (req, res) => {
         await db.query('INSERT INTO comments (user_id, novel_id, content) VALUES ($1, $2, $3)', [user_id, req.params.id, content]);
         res.json({ message: "คอมเมนต์สำเร็จ" });
     } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+// ==========================================
+// [เพิ่มใหม่] 9. บันทึกตำแหน่งการ์ดใน Story Line
+// ==========================================
+exports.saveStorylinePositions = async (req, res) => {
+    const { novelId, pages } = req.body; 
+    // pages = [{ id: 1, x: 100, y: 200 }, ...]
+    
+    if (!novelId || !pages || !Array.isArray(pages)) {
+        return res.status(400).json({ error: "ข้อมูลไม่ครบถ้วน" });
+    }
+
+    const client = await db.connect();
+    try {
+        await client.query('BEGIN');
+        
+        for (let p of pages) {
+            // อัปเดตตำแหน่ง X, Y ของแต่ละหน้า
+            // ตรวจสอบด้วยว่า page_id นี้อยู่ใน novel_id ที่ถูกต้อง (เพื่อความปลอดภัย)
+            await client.query(`
+                UPDATE pages 
+                SET storyline_x = $1, storyline_y = $2 
+                WHERE id = $3 AND chapter_id IN (
+                    SELECT id FROM chapters WHERE novel_id = $4
+                )
+            `, [p.x, p.y, p.id, novelId]);
+        }
+        
+        await client.query('COMMIT');
+        res.json({ message: "บันทึกตำแหน่งผังสำเร็จ" });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error("Save Storyline Error:", err);
+        res.status(500).json({ error: "บันทึกตำแหน่งไม่สำเร็จ" });
+    } finally {
+        client.release();
+    }
 };

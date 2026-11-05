@@ -1,0 +1,387 @@
+/* ========================================== */
+/* สไตล์สำหรับหน้า Story Line (ทั้ง Creator และ Player) */
+/* ========================================== */
+
+:root {
+    --bg-color: #ffffff;
+    --text-dark: #1e293b;
+    --text-light: #64748b;
+    --card-bg: #ebd8d0;
+    --card-border: #d4b5a8;
+    --card-text: #9c7b6f;
+    --path-color: #1e293b;
+    --gold-color: #fbbf24;
+    
+    /* สถานะการอ่าน (สำหรับ Player) */
+    --status-read: #10b981;
+    --status-current: #6366f1;
+    --status-locked: #cbd5e1;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Prompt', sans-serif;
+}
+
+body {
+    background-color: var(--bg-color);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* ========================================== */
+/* Header */
+/* ========================================== */
+header {
+    height: 70px;
+    background: #ffffff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 30px;
+    border-bottom: 1px solid #e2e8f0;
+    z-index: 100;
+    flex-shrink: 0;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.btn-back {
+    text-decoration: none;
+    color: var(--text-dark);
+    font-size: 28px;
+    cursor: pointer;
+    line-height: 1;
+    transition: 0.2s;
+}
+
+.btn-back:hover { color: #6366f1; }
+
+.title-area h1 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #475569;
+}
+
+.header-right {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+/* ========================================== */
+/* ปุ่มต่างๆ */
+/* ========================================== */
+.btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: 0.2s;
+    font-family: 'Prompt';
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-gold {
+    background: #fffbeb;
+    border-color: #fcd34d;
+    color: #b45309;
+}
+.btn-gold:hover:not(:disabled) { background: #fef3c7; }
+
+.btn-save {
+    background: #6366f1;
+    color: white;
+    border: none;
+}
+.btn-save:hover:not(:disabled) { background: #4f46e5; }
+
+.btn-follow { background: #e0e7ff; color: #4f46e5; border-color: #c7d2fe; border-radius: 20px; font-size: 14px; padding: 8px 16px;}
+.btn-follow:hover { background: #c7d2fe; }
+.btn-follow.followed { background: #10b981; color: white; border-color: #10b981; }
+
+.btn-comment { background: #f8fafc; border-color: #e2e8f0; border-radius: 20px; font-size: 14px; padding: 8px 16px;}
+.btn-comment:hover { background: #e2e8f0; }
+
+/* ========================================== */
+/* โปรไฟล์นักเขียน (Player) */
+/* ========================================== */
+.author-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 20px;
+    transition: background 0.2s;
+}
+.author-profile:hover { background: #f1f5f9; }
+
+.author-avatar {
+    width: 35px;
+    height: 35px;
+    background: #6366f1;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 16px;
+    object-fit: cover;
+}
+
+.author-name { font-size: 15px; font-weight: 600; color: var(--text-dark); }
+
+
+/* ========================================== */
+/* Board Area (พื้นที่วาดผัง) */
+/* ========================================== */
+#board-container {
+    flex: 1;
+    overflow: auto; /* ให้ Scroll ได้ทั้งซ้ายขวาบนล่าง */
+    position: relative;
+    cursor: grab;
+    background-image: radial-gradient(#e2e8f0 1.5px, transparent 1.5px);
+    background-size: 30px 30px;
+}
+#board-container:active { cursor: grabbing; }
+
+#board {
+    position: relative;
+    width: 3000px; 
+    height: 2000px;
+}
+
+/* SVG Lines */
+#svg-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* คลิกทะลุได้ */
+    z-index: 1;
+}
+
+.path-black { stroke: var(--path-color); stroke-width: 6; fill: none; }
+.path-gold { stroke: var(--gold-color); stroke-width: 6; fill: none; }
+.arrow-head { fill: var(--path-color); }
+.arrow-head-gold { fill: var(--gold-color); }
+
+/* ========================================== */
+/* Cards (การ์ดหน้า/บท) */
+/* ========================================== */
+.card {
+    position: absolute;
+    width: 130px;
+    height: 180px;
+    background-color: var(--card-bg);
+    border: 2px solid var(--card-border);
+    border-radius: 6px;
+    box-shadow: 2px 4px 10px rgba(0,0,0,0.1), inset 0 0 0 4px var(--card-bg), inset 0 0 0 5px var(--card-border);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-weight: 600;
+    color: var(--card-text);
+    user-select: none;
+    cursor: grab;
+    z-index: 10;
+    transition: box-shadow 0.2s;
+    touch-action: none; /* ป้องกันการ Scroll หน้าจอตอนลากบนมือถือ */
+}
+
+.card:active {
+    cursor: grabbing;
+    z-index: 100;
+    box-shadow: 5px 10px 20px rgba(0,0,0,0.3);
+}
+
+.card .main-text { font-size: 16px; line-height: 1.4; }
+.card .sub-text {
+    font-size: 13px;
+    color: #b8a097;
+    margin-top: 5px;
+    word-break: break-all;
+    padding: 0 5px;
+}
+
+/* Card สำหรับบทถัดไป (สีทอง) */
+.card-gold {
+    border-color: var(--gold-color) !important;
+    box-shadow: 0 0 15px rgba(251, 191, 36, 0.4), inset 0 0 0 5px var(--card-border) !important;
+}
+
+/* ปุ่มลบการ์ด (Creator) */
+.btn-delete-card {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 24px;
+    height: 24px;
+    background: #ef4444;
+    color: white;
+    border: 2px solid white;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 20;
+    display: none;
+}
+.card:hover .btn-delete-card { display: flex; }
+
+/* ========================================== */
+/* สถานะการอ่าน (Player Only) */
+/* ========================================== */
+.card.status-read {
+    border-color: var(--status-read);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.3), inset 0 0 0 5px var(--card-border);
+}
+.card.status-read::after {
+    content: '✓ อ่านแล้ว';
+    position: absolute;
+    bottom: -25px;
+    font-size: 12px;
+    color: var(--status-read);
+    background: white;
+    padding: 2px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--status-read);
+}
+
+.card.status-current {
+    border-color: var(--status-current);
+    box-shadow: 0 0 25px rgba(99, 102, 241, 0.5), inset 0 0 0 5px var(--card-border);
+    transform: scale(1.05);
+}
+.card.status-current::after {
+    content: '▶ กำลังอ่าน';
+    position: absolute;
+    bottom: -25px;
+    font-size: 12px;
+    color: white;
+    background: var(--status-current);
+    padding: 2px 10px;
+    border-radius: 10px;
+}
+
+.card.status-locked {
+    opacity: 0.5;
+    border-color: var(--status-locked);
+    filter: grayscale(0.8);
+}
+
+/* ========================================== */
+/* Loading State */
+/* ========================================== */
+#loading {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+    color: var(--text-light);
+}
+
+/* ========================================== */
+/* Modal คอมเมนต์ (Player) */
+/* ========================================== */
+#comment-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px);
+}
+
+.comment-modal-content {
+    background: white;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.comment-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.comment-header h3 { margin: 0; color: #1e293b; }
+
+.close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; }
+
+#comment-list {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    background: #f8fafc;
+}
+
+.comment-item { display: flex; gap: 10px; }
+
+.comment-avatar {
+    width: 35px; height: 35px; border-radius: 50%;
+    background: #6366f1; color: white;
+    display: flex; justify-content: center; align-items: center;
+    font-size: 14px; font-weight: bold; flex-shrink: 0;
+    object-fit: cover;
+}
+
+.comment-body {
+    background: white; padding: 10px 15px; border-radius: 10px;
+    border: 1px solid #e2e8f0; font-size: 14px; color: #1e293b;
+}
+
+.comment-author-name { font-weight: 600; font-size: 13px; color: #6366f1; margin-bottom: 3px; }
+
+.comment-input-area {
+    padding: 15px 20px; border-top: 1px solid #e2e8f0; display: flex; gap: 10px;
+}
+
+#comment-input {
+    flex: 1; padding: 10px 15px; border: 1px solid #cbd5e1;
+    border-radius: 20px; outline: none; font-family: 'Prompt';
+}
+
+#btn-send-comment {
+    padding: 10px 20px; background: #6366f1; color: white;
+    border: none; border-radius: 20px; font-weight: 600; cursor: pointer;
+    font-family: 'Prompt';
+}
