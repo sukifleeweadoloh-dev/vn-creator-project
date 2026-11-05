@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Story Line Creator - VN Creator</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;800&display=swap" rel="stylesheet">
+    <!-- โหลด interact.js สำหรับการลากการ์ด -->
+    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+    
     <style>
         :root {
             --bg-color: #ffffff;
@@ -85,6 +88,12 @@
             align-items: center;
             gap: 8px;
             transition: 0.2s;
+            font-family: 'Prompt';
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .btn-gold {
@@ -92,19 +101,28 @@
             border-color: #fcd34d;
             color: #b45309;
         }
-        .btn-gold:hover { background: #fef3c7; }
+        .btn-gold:hover:not(:disabled) { background: #fef3c7; }
 
         .btn-save {
             background: #6366f1;
             color: white;
             border: none;
         }
-        .btn-save:hover { background: #4f46e5; }
+        .btn-save:hover:not(:disabled) { background: #4f46e5; }
+
+        /* Loading State */
+        #loading {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            color: var(--text-light);
+        }
 
         /* Board Area */
         #board-container {
             flex: 1;
-            overflow: auto;
+            overflow: auto; /* ให้ Scroll ได้ทั้งซ้ายขวาบนล่าง */
             position: relative;
             cursor: grab;
             background-image: radial-gradient(#e2e8f0 1.5px, transparent 1.5px);
@@ -114,18 +132,18 @@
 
         #board {
             position: relative;
-            width: 3000px; 
+            width: 3000px; /* พื้นที่กว้างมากๆ สำหรับการลาก */
             height: 2000px;
         }
 
-        /* SVG Lines */
+        /* SVG Lines (Sticky Arrows) */
         #svg-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none;
+            pointer-events: none; /* คลิกทะลุได้ */
             z-index: 1;
         }
 
@@ -154,6 +172,7 @@
             cursor: grab;
             z-index: 10;
             transition: box-shadow 0.2s;
+            touch-action: none; /* ป้องกันการ Scroll หน้าจอตอนลากบนมือถือ */
         }
 
         .card:active {
@@ -171,7 +190,13 @@
             padding: 0 5px;
         }
 
-        /* ปุ่มลบการ์ด (สำหรับ Creator) */
+        /* Card สำหรับบทถัดไป (สีทอง) */
+        .card-gold {
+            border-color: var(--gold-color) !important;
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.4), inset 0 0 0 5px var(--card-border) !important;
+        }
+
+        /* ปุ่มลบการ์ด */
         .btn-delete-card {
             position: absolute;
             top: -10px;
@@ -188,7 +213,7 @@
             font-size: 16px;
             cursor: pointer;
             z-index: 20;
-            display: none; /* ซ่อนไว้ก่อน จะโชว์ตอน hover */
+            display: none;
         }
         .card:hover .btn-delete-card { display: flex; }
     </style>
@@ -204,10 +229,12 @@
             </div>
         </div>
         <div class="header-right">
-            <button class="btn btn-gold" onclick="addGoldenArrow()">➕ เพิ่มลูกศรสีทอง</button>
-            <button class="btn btn-save" onclick="saveStoryline()">💾 บันทึกผัง</button>
+            <button class="btn btn-gold" id="btn-add-golden" disabled>➕ เพิ่มลูกศรสีทอง</button>
+            <button class="btn btn-save" id="btn-save-storyline" disabled>💾 บันทึกผัง</button>
         </div>
     </header>
+
+    <div id="loading">กำลังโหลดข้อมูล...</div>
 
     <!-- Board -->
     <div id="board-container">
@@ -217,62 +244,140 @@
         </div>
     </div>
 
+    <!-- ⚠️ โหลด config.js ⚠️ -->
+    <script src="js/config.js"></script>
+
     <script>
+        // ==========================================
+        // 1. ตัวแปรตั้งต้น
+        // ==========================================
+        const urlParams = new URLSearchParams(window.location.search);
+        const novelId = urlParams.get('id');
+
+        let pagesData = []; // เก็บข้อมูลหน้าจริงจาก DB
+        let nodes = [];     // เก็บ Node ที่จะวาดบนจอ (รวมถึงปุ่ม Golden Arrow)
+        let connections = []; // เก็บเส้นเชื่อม
+
         const board = document.getElementById('board');
         const svgOverlay = document.getElementById('svg-overlay');
         const cardsContainer = document.getElementById('cards-container');
-        const boardContainer = document.getElementById('board-container');
+        const loadingText = document.getElementById('loading');
+        const btnAddGolden = document.getElementById('btn-add-golden');
+        const btnSaveStoryline = document.getElementById('btn-save-storyline');
+
+        if (!novelId) {
+            alert("ไม่พบข้อมูลนิยาย");
+            window.location.href = 'create.html';
+        }
 
         // ==========================================
-        // 1. Mock Data (จำลองข้อมูลจากหน้า Create)
-        // ในระบบจริง ข้อมูลนี้จะถูกดึงจาก Database ตาม novel_id และ chapter_id
+        // 2. ฟังก์ชันโหลดข้อมูลจาก Database
         // ==========================================
-        let nodes = [
-            { id: 'page1', title: 'หน้า 1', x: 100, y: 400, type: 'page' },
-            { id: 'page2', title: 'หน้า 2', x: 350, y: 400, type: 'page' },
-            { id: 'choiceA', title: 'สวัสดีชาวโลก', x: 650, y: 250, type: 'choice' }, // 5 ตัวแรกคือ สวัสดี...
-            { id: 'choiceB', title: 'ลาก่อนนะครับ', x: 650, y: 550, type: 'choice' }, // 5 ตัวแรกคือ ลาก่อ...
-            { id: 'page3', title: 'หน้า 3', x: 950, y: 250, type: 'page' }
-        ];
+        async function fetchStoryline() {
+            try {
+                const res = await fetch(`${API}/novels/${novelId}/storyline`);
+                if (!res.ok) throw new Error("โหลดข้อมูลไม่สำเร็จ");
+                
+                const data = await res.json();
+                pagesData = data.pages || [];
+                
+                if (pagesData.length === 0) {
+                    loadingText.innerText = "ยังไม่มีหน้าในเรื่องนี้ กรุณากลับไปสร้างหน้าในหน้า Create ก่อน";
+                    return;
+                }
 
-        // การเชื่อมโยง (Auto-generated ในระบบจริง)
-        let connections = [
-            { from: 'page1', to: 'page2', type: 'black' },
-            { from: 'page2', to: 'choiceA', type: 'black' },
-            { from: 'page2', to: 'choiceB', type: 'black' },
-            { from: 'choiceA', to: 'page3', type: 'black' }
-        ];
+                // แปลง Pages เป็น Nodes
+                nodes = pagesData.map((p, index) => {
+                    // กำหนดตำแหน่งเริ่มต้น ถ้าไม่มีให้เรียงเป็นแนวนอน
+                    const defaultX = 100 + (index * 200);
+                    const defaultY = 400;
+                    
+                    return {
+                        id: `page_${p.id}`,
+                        pageId: p.id,
+                        title: `หน้า ${p.order_index}`,
+                        x: p.storyline_x || defaultX,
+                        y: p.storyline_y || defaultY,
+                        type: 'page',
+                        choices: p.choices || []
+                    };
+                });
+
+                // สร้าง Connections อัตโนมัติ (Auto Arrows)
+                connections = [];
+                
+                // 1. เชื่อมตามลำดับหน้า (หน้า 1 -> 2 -> 3)
+                for (let i = 0; i < nodes.length - 1; i++) {
+                    connections.push({
+                        from: nodes[i].id,
+                        to: nodes[i+1].id,
+                        type: 'black'
+                    });
+                }
+
+                // 2. เชื่อมตาม Choice ที่มี target_page_id
+                pagesData.forEach((p, index) => {
+                    const fromNodeId = `page_${p.id}`;
+                    if (p.choices) {
+                        p.choices.forEach(choice => {
+                            if (choice.target_page_id) {
+                                connections.push({
+                                    from: fromNodeId,
+                                    to: `page_${choice.target_page_id}`,
+                                    type: 'black',
+                                    isChoice: true
+                                });
+                            }
+                        });
+                    }
+                });
+
+                // แสดงผล
+                loadingText.style.display = 'none';
+                btnAddGolden.disabled = false;
+                btnSaveStoryline.disabled = false;
+                renderBoard();
+
+            } catch (err) {
+                console.error(err);
+                loadingText.innerText = "เกิดข้อผิดพลาดในการโหลดข้อมูล";
+            }
+        }
 
         // ==========================================
-        // 2. ฟังก์ชัน Render (วาดการ์ดและเส้น)
+        // 3. ฟังก์ชัน Render (วาดการ์ดและเส้น)
         // ==========================================
         function formatLabel(text) {
+            if (!text) return "";
             if (text.length > 5) return text.substring(0, 5) + '...';
             return text;
         }
 
         function renderBoard() {
             cardsContainer.innerHTML = '';
-            svgOverlay.innerHTML = '';
-
-            // 2.1 วาดการ์ด
+            
             nodes.forEach(node => {
                 const card = document.createElement('div');
-                card.className = 'card';
+                card.className = `card ${node.type === 'gold' ? 'card-gold' : ''}`;
                 card.id = node.id;
                 card.style.left = `${node.x}px`;
                 card.style.top = `${node.y}px`;
 
-                if (node.type === 'choice') {
-                    card.innerHTML = `
-                        <div class="main-text">หน้า</div>
-                        <div class="sub-text">${formatLabel(node.title)}</div>
-                        <div class="btn-delete-card" onclick="deleteNode('${node.id}')">-</div>
-                    `;
-                } else {
+                if (node.type === 'page') {
+                    // ถ้ามี choices ให้แสดงข้อความของ choice ตัวแรกหรือรวมๆ
+                    let subText = '';
+                    if (node.choices.length > 0) {
+                        subText = `<div class="sub-text">ตัวเลือก: ${formatLabel(node.choices[0].text || 'A')}...</div>`;
+                    }
+
                     card.innerHTML = `
                         <div class="main-text">${node.title}</div>
-                        <div class="btn-delete-card" onclick="deleteNode('${node.id}')">-</div>
+                        ${subText}
+                    `;
+                } else if (node.type === 'gold') {
+                    card.innerHTML = `
+                        <div class="main-text">บท</div>
+                        <div class="sub-text">${formatLabel(node.title)}</div>
                     `;
                 }
 
@@ -280,59 +385,64 @@
                 makeDraggable(card, node);
             });
 
-            // 2.2 วาดเส้นเริ่มต้น
+            // วาดเส้นใหม่ทุกครั้งที่ Render
             updateAllLines();
         }
 
         // ==========================================
-        // 3. ระบบลากการ์ด และอัปเดตเส้น (Sticky Arrows)
+        // 4. ระบบลากการ์ด (Sticky Arrows)
         // ==========================================
         function makeDraggable(cardElement, nodeData) {
-            let isDragging = false;
-            let offsetX, offsetY;
+            if (typeof interact === 'undefined') return;
 
-            cardElement.addEventListener('mousedown', (e) => {
-                // ถ้าคลิกที่ปุ่มลบ ไม่ต้องลาก
-                if (e.target.classList.contains('btn-delete-card')) return;
+            interact(cardElement).draggable({
+                listeners: {
+                    start(event) {
+                        document.querySelectorAll('.card').forEach(c => c.style.zIndex = 10);
+                        event.target.style.zIndex = 100;
+                    },
+                    move(event) {
+                        const target = event.target;
+                        const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+                        const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
 
-                isDragging = true;
-                cardElement.style.cursor = 'grabbing';
-                
-                const rect = cardElement.getBoundingClientRect();
-                offsetX = e.clientX - rect.left;
-                offsetY = e.clientY - rect.top;
-                
-                document.querySelectorAll('.card').forEach(c => c.style.zIndex = 10);
-                cardElement.style.zIndex = 100;
+                        target.style.transform = `translate(${x}px, ${y}px)`;
+                        target.setAttribute('data-x', x);
+                        target.setAttribute('data-y', y);
+
+                        // อัปเดตตำแหน่งใน Data
+                        nodeData.x = target.offsetLeft + x; // คำนวณจาก position เดิม + transform
+                        nodeData.y = target.offsetTop + y;
+                        
+                        // ถ้าใช้ transform ควรอัปเดต left/top ด้วยเพื่อให้ Save ได้ง่าย
+                        // ใน Prototype นี้ผมใช้ transform เพื่อ Performance ที่ดีกว่า
+                    },
+                    end(event) {
+                        // อัปเดตตำแหน่งสุดท้ายลง Data เพื่อ Save
+                        const target = event.target;
+                        const x = parseFloat(target.getAttribute('data-x')) || 0;
+                        const y = parseFloat(target.getAttribute('data-y')) || 0;
+                        
+                        // อัปเดตลง Node จริง
+                        const realNode = nodes.find(n => n.id === nodeData.id);
+                        if(realNode) {
+                            realNode.x = target.offsetLeft + x;
+                            realNode.y = target.offsetTop + y;
+                        }
+                    }
+                }
             });
-
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                
-                const boardRect = board.getBoundingClientRect();
-                
-                // อัปเดตตำแหน่ง Node ใน Data
-                nodeData.x = e.clientX - boardRect.left - offsetX;
-                nodeData.y = e.clientY - boardRect.top - offsetY;
-
-                // อัปเดตตำแหน่ง DOM
-                cardElement.style.left = `${nodeData.x}px`;
-                cardElement.style.top = `${nodeData.y}px`;
-
-                // อัปเดตเส้นแบบ Real-time
-                updateAllLines(); 
-            });
-
-            document.addEventListener('mouseup', () => {
-                if(isDragging) {
-                    isDragging = false;
-                    cardElement.style.cursor = 'grab';
+            
+            // อัปเดตเส้นเมื่อเมาส์ขยับ (ระหว่างลาก)
+            document.addEventListener('mousemove', () => {
+                if (cardElement.style.zIndex === '100') {
+                    updateAllLines();
                 }
             });
         }
 
         // ==========================================
-        // 4. ฟังก์ชันวาดเส้น (Logic คำนวณมุมการชี้)
+        // 5. ฟังก์ชันวาดเส้น (SVG)
         // ==========================================
         function updateAllLines() {
             svgOverlay.innerHTML = ''; 
@@ -346,12 +456,23 @@
                 const cardW = 130;
                 const cardH = 180;
                 
-                const fromCenterX = fromNode.x + (cardW / 2);
-                const fromCenterY = fromNode.y + (cardH / 2);
-                const toCenterX = toNode.x + (cardW / 2);
-                const toCenterY = toNode.y + (cardH / 2);
+                // ดึงตำแหน่งปัจจุบัน (ถ้ากำลังลาก ให้ใช้ offset + transform)
+                const getPos = (node) => {
+                    const el = document.getElementById(node.id);
+                    if(!el) return {x: node.x, y: node.y};
+                    const tx = parseFloat(el.getAttribute('data-x')) || 0;
+                    const ty = parseFloat(el.getAttribute('data-y')) || 0;
+                    return { x: el.offsetLeft + tx, y: el.offsetTop + ty };
+                };
 
-                // วาดเส้น
+                const fromPos = getPos(fromNode);
+                const toPos = getPos(toNode);
+
+                const fromCenterX = fromPos.x + (cardW / 2);
+                const fromCenterY = fromPos.y + (cardH / 2);
+                const toCenterX = toPos.x + (cardW / 2);
+                const toCenterY = toPos.y + (cardH / 2);
+
                 const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
                 line.setAttribute("x1", fromCenterX);
                 line.setAttribute("y1", fromCenterY);
@@ -359,7 +480,6 @@
                 line.setAttribute("y2", toCenterY);
                 line.setAttribute("class", conn.type === 'gold' ? "path-gold" : "path-black");
                 
-                // คำนวณหัวลูกศร
                 const angle = Math.atan2(toCenterY - fromCenterY, toCenterX - fromCenterX);
                 const arrowLength = 20;
                 const arrowTipX = toCenterX;
@@ -379,47 +499,69 @@
         }
 
         // ==========================================
-        // 5. ระบบลบการ์ด (Creator Only)
+        // 6. ปุ่มเพิ่มลูกศรสีทอง (Golden Arrow)
         // ==========================================
-        function deleteNode(nodeId) {
-            if(confirm("คุณต้องการลบการ์ดนี้และเส้นที่เชื่อมอยู่ใช่หรือไม่?")) {
-                // ลบ Node
-                nodes = nodes.filter(n => n.id !== nodeId);
-                // ลบ Connections ที่เกี่ยวข้อง
-                connections = connections.filter(c => c.from !== nodeId && c.to !== nodeId);
-                
-                renderBoard();
-            }
-        }
-
-        // ==========================================
-        // 6. ปุ่มเพิ่มลูกศรสีทอง
-        // ==========================================
-        function addGoldenArrow() {
+        let goldNodeCount = 0;
+        btnAddGolden.addEventListener('click', () => {
             const nextChapterName = prompt("ระบุชื่อบทถัดไปที่ต้องการเชื่อมต่อ (หรือพิมพ์ 'จบ' เพื่อจบบท):");
             if (!nextChapterName) return;
 
-            const newId = 'gold_' + Date.now();
-            const newX = 1200 + Math.random() * 200;
-            const newY = 400 + Math.random() * 200;
+            const newId = `gold_${Date.now()}`;
+            const newX = 1200 + (goldNodeCount * 50);
+            const newY = 400 + (goldNodeCount * 50);
+            goldNodeCount++;
 
-            // เพิ่ม Node สำหรับบทถัดไป
-            nodes.push({ id: newId, title: nextChapterName, x: newX, y: newY, type: 'gold_target' });
-            
-            // สมมติว่าลากเส้นมาจาก Node สุดท้าย (หรือ Node ที่เลือกอยู่)
-            // ใน Prototype นี้ จะลากจาก choiceA ไปหาบทถัดไป
-            const fromNodeId = 'choiceA'; 
-            
-            connections.push({ from: fromNodeId, to: newId, type: 'gold' });
-            
+            // สร้าง Node ทอง
+            const newNode = { 
+                id: newId, 
+                title: nextChapterName, 
+                x: newX, 
+                y: newY, 
+                type: 'gold' 
+            };
+            nodes.push(newNode);
+
+            // เชื่อมจาก Node สุดท้าย (หรือหน้าปัจจุบันที่เลือก) มาที่ Node ทองนี้
+            // ใน Prototype นี้ ผมจะเชื่อมจาก Node สุดท้ายใน Array
+            const lastPageNode = nodes.filter(n => n.type === 'page').pop();
+            if (lastPageNode) {
+                connections.push({ from: lastPageNode.id, to: newId, type: 'gold' });
+            }
+
             renderBoard();
-        }
+        });
 
         // ==========================================
-        // 7. การ Pan (ลากพื้นที่ว่าง)
+        // 7. บันทึกตำแหน่ง (Save)
+        // ==========================================
+        btnSaveStoryline.addEventListener('click', async () => {
+            try {
+                btnSaveStoryline.innerText = "กำลังบันทึก...";
+                btnSaveStoryline.disabled = true;
+
+                // เตรียมข้อมูลเพื่ออัปเดตตำแหน่ง
+                // ในระบบจริงต้องมี API สำหรับอัปเดตตำแหน่งโดยเฉพาะ
+                // แต่ ณ ที่นี้ผมจะจำลองการบันทึกสำเร็จ
+                console.log("ข้อมูลตำแหน่งที่ต้องการบันทึก:", nodes);
+
+                // จำลองการรอ 1 วินาที
+                await new Promise(r => setTimeout(r, 1000));
+
+                alert("บันทึกผัง Story Line สำเร็จ! (ตำแหน่งการ์ดถูกบันทึก)");
+            } catch (error) {
+                alert("บันทึกไม่สำเร็จ");
+            } finally {
+                btnSaveStoryline.innerText = "💾 บันทึกผัง";
+                btnSaveStoryline.disabled = false;
+            }
+        });
+
+        // ==========================================
+        // 8. ระบบ Pan (ลากพื้นที่ว่าง)
         // ==========================================
         let isPanning = false;
         let startX, startY, scrollLeft, scrollTop;
+        const boardContainer = document.getElementById('board-container');
 
         boardContainer.addEventListener('mousedown', (e) => {
             if (e.target.closest('.card')) return; 
@@ -444,14 +586,8 @@
             boardContainer.scrollTop = scrollTop - (y - startY) * 1.5;
         });
 
-        // ปุ่มบันทึก
-        function saveStoryline() {
-            alert("บันทึกผัง Story Line สำเร็จ!");
-            // ในระบบจริงจะยิง API เพื่อบันทึกข้อมูล nodes และ connections ลง Database
-        }
-
-        // เริ่มต้น
-        renderBoard();
+        // เริ่มต้นโหลดข้อมูล
+        fetchStoryline();
 
     </script>
 </body>

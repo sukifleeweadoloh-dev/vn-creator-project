@@ -1,7 +1,15 @@
 body {
-    overflow: hidden; /* ไม่ให้หน้าจอเลื่อน */
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* ซ่อน Scrollbar ของหน้าหลักไว้ เพื่อให้ Sidebar และ Canvas เลื่อนแยกกัน */
 }
 
+/* ========================================== */
+/* Top Bar */
+/* ========================================== */
 .top-bar {
     background: var(--white);
     padding: 10px 20px;
@@ -11,10 +19,13 @@ body {
     border-bottom: 1px solid #e2e8f0;
     box-shadow: var(--shadow-sm);
     z-index: 100;
+    flex-wrap: wrap; /* ให้ปุ่มตกลงมาถ้าจอเล็ก */
+    gap: 10px;
+    flex-shrink: 0;
 }
 
 .top-bar a, .top-bar button {
-    padding: 8px 20px;
+    padding: 8px 15px;
     border-radius: 8px;
     border: none;
     cursor: pointer;
@@ -23,101 +34,224 @@ body {
     color: var(--text-dark);
     background: #f1f5f9;
     transition: 0.2s;
+    font-size: 14px;
 }
 
 .top-bar button:hover, .top-bar a:hover {
     background: #e2e8f0;
 }
 
+/* ========================================== */
+/* Editor Container (Main Layout) */
+/* ========================================== */
 .editor-container {
     display: flex;
-    height: calc(100vh - 60px);
+    flex: 1;
+    overflow: hidden; /* ซ่อน Scrollbar ของ container หลัก */
 }
 
-/* Sidebar ขวา/ซ้าย */
+/* ========================================== */
+/* Sidebar (แถบด้านซ้าย) */
+/* ========================================== */
 .sidebar {
-    width: 250px;
+    width: 300px;
     background: var(--white);
     border-right: 1px solid #e2e8f0;
-    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    flex-shrink: 0;
     z-index: 10;
+    height: 100%;
 }
 
-.sidebar button {
-    padding: 12px;
-    border: none;
-    border-radius: 8px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    cursor: pointer;
-    font-weight: 500;
-    transition: 0.2s;
+.sidebar-header {
+    padding: 15px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 40vh; /* จำกัดความสูง */
+    overflow-y: auto; /* ให้ Scroll ได้ */
 }
 
-.sidebar button:hover {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
-}
-
-#page-list {
+.sidebar-content {
     flex: 1;
-    overflow-y: auto;
+    padding: 15px;
+    overflow-y: auto; /* ให้ Scroll ได้ */
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
-/* Canvas */
-.canvas {
+.sidebar-footer {
+    padding: 15px;
+    border-top: 1px solid #e2e8f0;
+    background: var(--white);
+}
+
+.form-group label {
+    font-size: 13px;
+    color: var(--text-light);
+    font-weight: 500;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-family: 'Prompt', sans-serif;
+    font-size: 14px;
+    outline: none;
+}
+
+.form-control:focus {
+    border-color: var(--primary);
+}
+
+.upload-btn {
+    background: #f1f5f9;
+    border: 1px dashed #cbd5e1;
+    padding: 10px;
+    text-align: center;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-light);
+    font-size: 13px;
+    transition: 0.2s;
+}
+
+.upload-btn:hover {
+    background: #e2e8f0;
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* สไตล์ปุ่มใน Sidebar */
+.sidebar .btn {
+    padding: 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: #f8fafc;
+    cursor: pointer;
+    font-weight: 500;
+    transition: 0.2s;
+    font-family: 'Prompt';
+    font-size: 14px;
+    color: var(--text-dark);
+}
+
+.sidebar .btn:hover:not(:disabled) {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.sidebar .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 5px 0;
+}
+
+/* รายการหน้า (Thumbnails) */
+.page-list {
     flex: 1;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.page-thumb {
+    height: 60px;
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 6px;
+    cursor: pointer;
     position: relative;
-    background-color: #000; /* พื้นหลังดำตามโจทย์ */
-    background-size: cover;
-    background-position: center;
     overflow: hidden;
-    box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+    transition: 0.2s;
+}
+
+.page-thumb:hover {
+    border-color: var(--primary);
+}
+
+.page-thumb.active {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
 /* ========================================== */
-/* Object ที่ลากได้ (ใช้ position: absolute เพื่อให้ปุ่มลบอยู่มุมขวาบนได้) */
+/* Canvas Area (พื้นที่ทำงาน) */
+/* ========================================== */
+.canvas-wrapper {
+    flex: 1;
+    background-color: #1a1a1a; /* สีพื้นหลังรอบนอก Canvas */
+    overflow: auto; /* ให้พื้นที่นี้ Scroll ได้ (Pan) */
+    position: relative;
+}
+
+.canvas {
+    position: relative;
+    background-color: #000; 
+    background-size: cover;
+    background-position: center;
+    /* บังคับขนาดให้ใหญ่เพื่อให้มีพื้นที่ลากของ */
+    width: 1500px; 
+    height: 1000px;
+    box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+    
+    /* ลายตารางพื้นหลังเพื่อให้เห็นพื้นที่ */
+    background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+/* ========================================== */
+/* Object ที่ลากได้ */
 /* ========================================== */
 .draggable-obj {
     position: absolute;
     cursor: grab;
     user-select: none;
     transform-origin: center;
-    /* เพิ่ม padding เล็กน้อยเพื่อให้เห็นกรอบเวลาลาก */
+    touch-action: none; /* สำคัญมาก: ป้องกันการ Scroll หน้าจอขณะลาก Object บนมือถือ */
 }
 
 .draggable-obj:active {
     cursor: grabbing;
 }
 
-/* ========================================== */
 /* ปุ่มลบ (ไอคอน - สีแดง) */
-/* ========================================== */
 .btn-delete {
     position: absolute;
     top: -12px;
     right: -12px;
-    width: 24px;
-    height: 24px;
-    background-color: #ef4444; /* สีแดง */
+    width: 28px;
+    height: 28px;
+    background-color: #ef4444; 
     color: white;
     border: 2px solid white;
     border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
     cursor: pointer;
     box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-    z-index: 200; /* ให้อยู่บนสุดเสมอ */
+    z-index: 200; 
     transition: transform 0.2s;
     line-height: 1;
 }
@@ -129,12 +263,13 @@ body {
 
 /* ปุ่มลบพื้นหลัง (มุมขวาบนของ Canvas) */
 .bg-delete-btn {
-    position: absolute;
+    position: sticky;
     top: 20px;
-    right: 20px;
+    left: 100%;
     width: 40px;
     height: 40px;
-    background-color: rgba(239, 68, 68, 0.8); /* สีแดงโปร่งแสง */
+    margin-right: 20px;
+    background-color: rgba(239, 68, 68, 0.8);
     color: white;
     border: 2px solid white;
     border-radius: 50%;
@@ -154,12 +289,10 @@ body {
     transform: scale(1.1);
 }
 
-/* ========================================== */
 /* บทพูด */
-/* ========================================== */
 .dialogue-obj {
     background: rgba(255, 255, 255, 0.95);
-    padding: 20px;
+    padding: 15px;
     border-radius: 10px;
     font-size: 20px;
     min-width: 200px;
@@ -179,18 +312,14 @@ body {
     text-align: center;
 }
 
-/* ========================================== */
 /* ตัวละคร */
-/* ========================================== */
 .character-obj img {
     max-height: 400px;
     object-fit: contain;
-    pointer-events: none; /* ให้คลิกโดนตัว div หลัก */
+    pointer-events: none; 
 }
 
-/* ========================================== */
 /* กล่องตัวเลือก (Choice Box) */
-/* ========================================== */
 .choice-obj {
     background: rgba(30, 41, 59, 0.95);
     border: 2px solid rgba(255, 255, 255, 0.2);
@@ -245,4 +374,34 @@ body {
 
 .btn-add-more-choice:hover {
     background: rgba(255,255,255,0.2);
+}
+
+/* ========================================== */
+/* Responsive (สำหรับมือถือ) */
+/* ========================================== */
+@media (max-width: 768px) {
+    .editor-container {
+        flex-direction: column; /* เรียงจากบนลงล่าง */
+    }
+    
+    .sidebar {
+        width: 100%;
+        height: 45vh; /* ให้ Sidebar กินพื้นที่ 45% ของจอ */
+        border-right: none;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .sidebar-header {
+        max-height: 20vh; /* ลดความสูงของ header ลง */
+    }
+
+    .canvas-wrapper {
+        height: 55vh; /* Canvas กินพื้นที่ที่เหลือ */
+        width: 100%;
+    }
+
+    .canvas {
+        width: 1000px; /* ลดขนาด Canvas ลงหน่อยสำหรับมือถือ */
+        height: 800px;
+    }
 }

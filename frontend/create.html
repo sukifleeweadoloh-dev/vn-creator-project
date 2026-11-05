@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>สร้างนิยาย - VN Creator</title>
+    
+    <!-- CSS หลักและ CSS ของหน้าสร้าง -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/create.css">
-    <link rel="stylesheet" href="css/cookie-consent.css">
     
     <!-- Library สำหรับ Drag & Drop และ Cut Background -->
     <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
@@ -17,7 +18,7 @@
     <div class="top-bar">
         <a href="index.html">🏠 กลับหน้าหลัก</a>
         <div style="display:flex; gap:10px;">
-            <button id="btn-add-bg">🖼️ เพิ่มพื้นหลัง</button>
+            <button id="btn-add-bg">🖼️ พื้นหลัง</button>
             <button id="btn-save">💾 บันทึก</button>
             <button id="btn-play">▶️ เล่น/อ่าน</button>
         </div>
@@ -39,9 +40,19 @@
                     <label>รูปภาพปกเรื่อง:</label>
                     <input type="file" id="cover-input" accept="image/*" style="display:none;">
                     <div class="upload-btn" id="btn-upload-cover">
-                        📸 อัปโหลดรูปปก
+                        📸 อัปโหลดรูปปกเรื่อง
                     </div>
-                    <img id="cover-preview" src="" style="width: 100%; max-height: 120px; object-fit: cover; border-radius: 8px; display: none; margin-top: 10px;">
+                    <img id="cover-preview" src="" style="width: 100%; max-height: 80px; object-fit: cover; border-radius: 8px; display: none; margin-top: 5px;">
+                </div>
+
+                <!-- อัปโหลดรูปภาพปกตอน -->
+                <div class="form-group">
+                    <label>รูปภาพปกตอน:</label>
+                    <input type="file" id="chapter-cover-input" accept="image/*" style="display:none;">
+                    <div class="upload-btn" id="btn-upload-chapter-cover">
+                        🖼️ อัปโหลดรูปปกตอน
+                    </div>
+                    <img id="chapter-cover-preview" src="" style="width: 100%; max-height: 80px; object-fit: cover; border-radius: 8px; display: none; margin-top: 5px;">
                 </div>
 
                 <!-- ช่องกรอกแท็ก -->
@@ -60,12 +71,14 @@
                 <button class="btn btn-secondary" id="btn-add-choice">+ เพิ่มตัวเลือก</button>
                 
                 <!-- ปุ่มไปหน้า Story Line -->
-                <button class="btn btn-storyline" onclick="window.location.href='storyline-creator.html'">🔗 ไปที่ Story Line</button>
+                <button class="btn btn-storyline" id="btn-go-storyline" style="background: #e0e7ff; color: #4f46e5; border: 1px solid #c7d2fe; margin-top: 5px;">
+                    🔗 ไปที่ Story Line
+                </button>
 
                 <div class="divider"></div>
 
                 <!-- รายการหน้า (Thumbnails) -->
-                <label style="font-size: 13px; color: var(--text-light);">รายการหน้า:</label>
+                <label style="font-size: 13px; color: var(--text-light); margin-bottom: 5px; display: block;">รายการหน้า:</label>
                 <div id="page-list" class="page-list"></div>
             </div>
 
@@ -76,8 +89,10 @@
         </div>
 
         <!-- Canvas ตรงกลาง (พื้นที่ทำงาน) -->
-        <div class="canvas" id="canvas">
-            <!-- Object ตัวละครและบทพูดจะถูกสร้างที่นี่โดย JS -->
+        <div class="canvas-wrapper">
+            <div class="canvas" id="canvas">
+                <!-- Object ตัวละครและบทพูดจะถูกสร้างที่นี่โดย JS -->
+            </div>
         </div>
     </div>
     

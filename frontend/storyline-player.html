@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Story Line - Player View</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;800&display=swap" rel="stylesheet">
+    
     <style>
         :root {
             --bg-color: #ffffff;
@@ -100,6 +101,7 @@
             align-items: center;
             font-weight: bold;
             font-size: 16px;
+            object-fit: cover;
         }
         
         .author-name { font-size: 15px; font-weight: 600; color: var(--text-dark); }
@@ -117,11 +119,13 @@
             align-items: center;
             gap: 5px;
             transition: 0.2s;
+            font-family: 'Prompt';
         }
 
         .btn-follow { background: #e0e7ff; color: #4f46e5; border-color: #c7d2fe; }
         .btn-follow:hover { background: #c7d2fe; }
-        
+        .btn-follow.followed { background: #10b981; color: white; border-color: #10b981; }
+
         .btn-comment { background: #f8fafc; border-color: #e2e8f0; }
         .btn-comment:hover { background: #e2e8f0; }
 
@@ -226,11 +230,97 @@
             border-color: var(--status-locked);
             filter: grayscale(0.8);
         }
-        
-        /* แสดงเส้นทางที่เลือก */
-        .chosen-path {
-            stroke: var(--status-current); /* ไฮไลท์เส้นทางที่เลือก */
-            stroke-width: 8;
+
+        /* Card สำหรับบทถัดไป (สีทอง) */
+        .card.card-gold {
+            border-color: var(--gold-color) !important;
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.4), inset 0 0 0 5px var(--card-border) !important;
+        }
+
+        /* Modal คอมเมนต์ */
+        #comment-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .comment-modal-content {
+            background: white;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            max-height: 80vh;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .comment-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .comment-header h3 { margin: 0; color: #1e293b; }
+
+        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; }
+
+        #comment-list {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: #f8fafc;
+        }
+
+        .comment-item { display: flex; gap: 10px; }
+
+        .comment-avatar {
+            width: 35px; height: 35px; border-radius: 50%;
+            background: #6366f1; color: white;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 14px; font-weight: bold; flex-shrink: 0;
+            object-fit: cover;
+        }
+
+        .comment-body {
+            background: white; padding: 10px 15px; border-radius: 10px;
+            border: 1px solid #e2e8f0; font-size: 14px; color: #1e293b;
+        }
+
+        .comment-author-name { font-weight: 600; font-size: 13px; color: #6366f1; margin-bottom: 3px; }
+
+        .comment-input-area {
+            padding: 15px 20px; border-top: 1px solid #e2e8f0; display: flex; gap: 10px;
+        }
+
+        #comment-input {
+            flex: 1; padding: 10px 15px; border: 1px solid #cbd5e1;
+            border-radius: 20px; outline: none; font-family: 'Prompt';
+        }
+
+        #btn-send-comment {
+            padding: 10px 20px; background: #6366f1; color: white;
+            border: none; border-radius: 20px; font-weight: 600; cursor: pointer;
+            font-family: 'Prompt';
+        }
+
+        /* Loading State */
+        #loading {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            color: var(--text-light);
         }
     </style>
 </head>
@@ -239,23 +329,23 @@
     <!-- Header -->
     <header>
         <div class="header-left">
-            <a href="play.html" class="btn-back">&#8617;</a>
+            <a href="play.html" class="btn-back" id="btn-back-play">&#8617;</a>
             <div class="title-area">
-                <h1>ชื่อเรื่อง (บทที่ 1)</h1>
+                <h1 id="novel-title">Story Line</h1>
             </div>
         </div>
         <div class="header-right">
-            <!-- โปรไฟล์นักเขียน (คลิกได้) -->
-            <div class="author-profile" onclick="window.location.href='profile.html?id=1'">
-                <div class="author-avatar">A</div>
-                <div class="author-name">Admin</div>
+            <!-- โปรไฟล์นักเขียน -->
+            <div class="author-profile" id="author-profile-box" onclick="goToAuthorProfile()">
+                <div class="author-avatar" id="author-avatar">?</div>
+                <div class="author-name" id="author-name">กำลังโหลด...</div>
             </div>
-            <!-- ปุ่มติดตาม -->
-            <button class="btn btn-follow" onclick="alert('ติดตามนักเขียนแล้ว!')">❤️ ติดตาม</button>
-            <!-- ปุ่มคอมเมนต์ -->
+            <button class="btn btn-follow" id="btn-follow">❤️ ติดตาม</button>
             <button class="btn btn-comment" onclick="openComments()">💬 คอมเมนต์</button>
         </div>
     </header>
+
+    <div id="loading">กำลังโหลดข้อมูล...</div>
 
     <!-- Board -->
     <div id="board-container">
@@ -265,79 +355,168 @@
         </div>
     </div>
 
-    <!-- Modal คอมเมนต์ (ซ่อนไว้ก่อน) -->
-    <div id="comment-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
-        <div style="background:white; width:500px; border-radius:15px; padding:20px; display:flex; flex-direction:column; gap:15px;">
-            <h2 style="color:var(--text-dark);">คอมเมนต์</h2>
-            <div style="height:200px; overflow-y:auto; border:1px solid #e2e8f0; padding:10px; border-radius:8px;">
-                <p style="font-size:14px; margin-bottom:10px;"><strong>User1:</strong> สนุกมากครับ!</p>
-                <p style="font-size:14px;"><strong>User2:</strong> รอตอนต่อไปนะครับ</p>
+    <!-- Modal คอมเมนต์ -->
+    <div id="comment-modal">
+        <div class="comment-modal-content">
+            <div class="comment-header">
+                <h3>คอมเมนต์</h3>
+                <button class="close-btn" onclick="closeComments()">&times;</button>
             </div>
-            <input type="text" placeholder="พิมพ์คอมเมนต์..." style="padding:10px; border-radius:8px; border:1px solid #cbd5e1; font-family:'Prompt';">
-            <div style="display:flex; justify-content:flex-end; gap:10px;">
-                <button onclick="closeComments()" style="padding:8px 16px; border-radius:8px; border:none; background:#e2e8f0; cursor:pointer;">ปิด</button>
-                <button onclick="alert('ส่งคอมเมนต์สำเร็จ')" style="padding:8px 16px; border-radius:8px; border:none; background:var(--primary); color:white; cursor:pointer;">ส่ง</button>
+            <div id="comment-list">
+                <p style="text-align:center; color:#94a3b8;">กำลังโหลด...</p>
+            </div>
+            <div class="comment-input-area">
+                <input type="text" id="comment-input" placeholder="พิมพ์คอมเมนต์...">
+                <button id="btn-send-comment">ส่ง</button>
             </div>
         </div>
     </div>
 
+    <!-- ⚠️ โหลด config.js ⚠️ -->
+    <script src="js/config.js"></script>
+
     <script>
+        // ==========================================
+        // 1. ตัวแปรตั้งต้น
+        // ==========================================
+        const urlParams = new URLSearchParams(window.location.search);
+        const novelId = urlParams.get('id');
+        
+        // ดึงข้อมูลผู้ใช้
+        let currentUser = null;
+        try {
+            const userStr = localStorage.getItem('user');
+            if (userStr && userStr !== 'undefined' && userStr !== 'null') {
+                currentUser = JSON.parse(userStr);
+            }
+        } catch (e) { console.error("LocalStorage Error"); }
+
+        const userId = currentUser ? currentUser.id : null;
+
+        let pagesData = []; 
+        let nodes = [];     
+        let connections = []; 
+        let readingProgress = []; // เก็บ ID ของหน้าที่อ่านแล้ว
+        let novelAuthorId = null;
+
         const board = document.getElementById('board');
         const svgOverlay = document.getElementById('svg-overlay');
         const cardsContainer = document.getElementById('cards-container');
-        const boardContainer = document.getElementById('board-container');
+        const loadingText = document.getElementById('loading');
 
-        // ==========================================
-        // 1. Mock Data (จำลองข้อมูลประวัติการอ่านของผู้เล่น)
-        // ==========================================
-        let nodes = [
-            { id: 'page1', title: 'หน้า 1', x: 100, y: 400, type: 'page', status: 'read' },
-            { id: 'page2', title: 'หน้า 2', x: 350, y: 400, type: 'page', status: 'read' },
-            { id: 'choiceA', title: 'สวัสดีชาวโลก', x: 650, y: 250, type: 'choice', status: 'read' }, 
-            { id: 'choiceB', title: 'ลาก่อนนะครับ', x: 650, y: 550, type: 'choice', status: 'current' }, 
-            { id: 'page3', title: 'หน้า 3', x: 950, y: 250, type: 'page', status: 'locked' }
-        ];
-
-        let connections = [
-            { from: 'page1', to: 'page2', type: 'black', chosen: true },
-            { from: 'page2', to: 'choiceA', type: 'black', chosen: true },
-            { from: 'page2', to: 'choiceB', type: 'black', chosen: false }, // สมมติว่าผู้เล่นเลือก A ไปแล้ว
-            { from: 'choiceA', to: 'page3', type: 'black', chosen: true }
-        ];
-
-        // ==========================================
-        // 2. ฟังก์ชัน Render
-        // ==========================================
-        function formatLabel(text) {
-            if (text.length > 5) return text.substring(0, 5) + '...';
-            return text;
+        if (!novelId) {
+            alert("ไม่พบข้อมูลนิยาย");
+            window.location.href = 'index.html';
         }
 
+        // อัปเดตลิงก์กลับไปหน้า Play
+        document.getElementById('btn-back-play').href = `play.html?id=${novelId}`;
+
+        // ==========================================
+        // 2. ฟังก์ชันโหลดข้อมูลจาก Database
+        // ==========================================
+        async function fetchStoryline() {
+            try {
+                // ส่ง userId ไปด้วยเพื่อดึงประวัติการอ่าน
+                const url = userId ? `${API}/novels/play/${novelId}?userId=${userId}` : `${API}/novels/play/${novelId}`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error("โหลดข้อมูลไม่สำเร็จ");
+                
+                const data = await res.json();
+                pagesData = data.pages || [];
+                novelAuthorId = data.author_id;
+                readingProgress = data.readingProgress || []; 
+                
+                if (pagesData.length === 0) {
+                    loadingText.innerText = "ไม่มีข้อมูลหน้านิยาย";
+                    return;
+                }
+
+                // หาหน้าที่อ่านล่าสุด (หน้าสุดท้ายที่อยู่ใน readingProgress)
+                let currentPageId = null;
+                if (readingProgress.length > 0) {
+                    // สมมติว่า readingProgress เรียงลำดับตามการอ่าน หรือหาค่าที่ order_index สูงสุด
+                    // เพื่อความง่าย ให้ใช้ตัวสุดท้ายที่บันทึกไว้ (หรือ max id)
+                    currentPageId = Math.max(...readingProgress);
+                }
+
+                // แปลง Pages เป็น Nodes
+                nodes = pagesData.map((p, index) => {
+                    let status = 'locked';
+                    if (readingProgress.includes(p.id)) {
+                        status = 'read';
+                    }
+                    if (p.id === currentPageId) {
+                        status = 'current';
+                    }
+
+                    return {
+                        id: `page_${p.id}`,
+                        pageId: p.id,
+                        title: `หน้า ${p.order_index}`,
+                        x: p.storyline_x || (100 + (index * 200)),
+                        y: p.storyline_y || 400,
+                        type: 'page',
+                        status: status,
+                        choices: p.choices || []
+                    };
+                });
+
+                // สร้าง Connections
+                connections = [];
+                for (let i = 0; i < nodes.length - 1; i++) {
+                    connections.push({ from: nodes[i].id, to: nodes[i+1].id, type: 'black' });
+                }
+                pagesData.forEach((p) => {
+                    if (p.choices) {
+                        p.choices.forEach(choice => {
+                            if (choice.target_page_id) {
+                                connections.push({ from: `page_${p.id}`, to: `page_${choice.target_page_id}`, type: 'black' });
+                            }
+                        });
+                    }
+                });
+
+                // โหลดข้อมูลนักเขียน
+                if (novelAuthorId) fetchAuthorInfo(novelAuthorId);
+
+                // แสดงผล
+                loadingText.style.display = 'none';
+                renderBoard();
+
+            } catch (err) {
+                console.error(err);
+                loadingText.innerText = "เกิดข้อผิดพลาดในการโหลดข้อมูล";
+            }
+        }
+
+        // ==========================================
+        // 3. ฟังก์ชัน Render
+        // ==========================================
         function renderBoard() {
             cardsContainer.innerHTML = '';
-            svgOverlay.innerHTML = '';
-
-            // วาดการ์ด
+            
             nodes.forEach(node => {
                 const card = document.createElement('div');
-                card.className = `card status-${node.status}`; // ใส่คลาสตามสถานะ
+                card.className = `card status-${node.status}`;
                 card.id = node.id;
                 card.style.left = `${node.x}px`;
                 card.style.top = `${node.y}px`;
 
-                if (node.type === 'choice') {
-                    card.innerHTML = `
-                        <div class="main-text">หน้า</div>
-                        <div class="sub-text">${formatLabel(node.title)}</div>
-                    `;
-                } else {
-                    card.innerHTML = `<div class="main-text">${node.title}</div>`;
+                let subText = '';
+                if (node.choices.length > 0) {
+                    const choiceTxt = node.choices[0].text || 'ตัวเลือก';
+                    const shortTxt = choiceTxt.length > 5 ? choiceTxt.substring(0,5) + '...' : choiceTxt;
+                    subText = `<div class="sub-text">${shortTxt}</div>`;
                 }
 
+                card.innerHTML = `
+                    <div class="main-text">${node.title}</div>
+                    ${subText}
+                `;
                 cardsContainer.appendChild(card);
             });
 
-            // วาดเส้น
             updateAllLines();
         }
 
@@ -350,10 +529,6 @@
 
                 if (!fromNode || !toNode) return;
 
-                // ถ้าเป็นโหมดผู้เล่น เราจะแสดงเฉพาะเส้นทางที่เลือกไปแล้ว (chosen = true)
-                // หรือถ้าไม่ต้องการซ่อนเส้นที่ไม่ได้เลือก ก็แสดงทั้งหมดแต่ทำให้จางลง
-                if (!conn.chosen && toNode.status === 'locked') return; 
-
                 const cardW = 130;
                 const cardH = 180;
                 
@@ -362,15 +537,13 @@
                 const toCenterX = toNode.x + (cardW / 2);
                 const toCenterY = toNode.y + (cardH / 2);
 
-                // วาดเส้น
                 const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
                 line.setAttribute("x1", fromCenterX);
                 line.setAttribute("y1", fromCenterY);
                 line.setAttribute("x2", toCenterX);
                 line.setAttribute("y2", toCenterY);
-                line.setAttribute("class", conn.chosen ? "path-black chosen-path" : "path-black");
+                line.setAttribute("class", conn.type === 'gold' ? "path-gold" : "path-black");
                 
-                // คำนวณหัวลูกศร
                 const angle = Math.atan2(toCenterY - fromCenterY, toCenterX - fromCenterX);
                 const arrowLength = 20;
                 const arrowTipX = toCenterX;
@@ -382,7 +555,7 @@
 
                 const arrowHead = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
                 arrowHead.setAttribute("points", `${arrowTipX},${arrowTipY} ${arrowBase1X},${arrowBase1Y} ${arrowBase2X},${arrowBase2Y}`);
-                arrowHead.setAttribute("class", "arrow-head");
+                arrowHead.setAttribute("class", conn.type === 'gold' ? "arrow-head-gold" : "arrow-head");
 
                 svgOverlay.appendChild(line);
                 svgOverlay.appendChild(arrowHead);
@@ -390,10 +563,11 @@
         }
 
         // ==========================================
-        // 3. ระบบ Pan (ลากพื้นที่ว่าง)
+        // 4. ระบบ Pan (ลากพื้นที่ว่าง)
         // ==========================================
         let isPanning = false;
         let startX, startY, scrollLeft, scrollTop;
+        const boardContainer = document.getElementById('board-container');
 
         boardContainer.addEventListener('mousedown', (e) => {
             isPanning = true;
@@ -417,17 +591,99 @@
         });
 
         // ==========================================
-        // 4. Modal คอมเมนต์
+        // 5. ข้อมูลนักเขียน และปุ่มติดตาม
         // ==========================================
-        function openComments() {
-            document.getElementById('comment-modal').style.display = 'flex';
-        }
-        function closeComments() {
-            document.getElementById('comment-modal').style.display = 'none';
+        async function fetchAuthorInfo(authorId) {
+            try {
+                const res = await fetch(`${API}/users/profile/${authorId}`);
+                const data = await res.json();
+                const author = data.user;
+
+                if (author) {
+                    document.getElementById('author-name').innerText = author.username;
+                    const avatarEl = document.getElementById('author-avatar');
+                    if (author.profile_pic) {
+                        avatarEl.innerHTML = `<img src="${author.profile_pic}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+                    } else {
+                        avatarEl.innerText = author.username.charAt(0).toUpperCase();
+                    }
+                }
+            } catch (err) { console.error(err); }
         }
 
-        // เริ่มต้น
-        renderBoard();
+        function goToAuthorProfile() {
+            if (novelAuthorId) window.location.href = `profile.html?id=${novelAuthorId}`;
+        }
+
+        // ==========================================
+        // 6. ระบบคอมเมนต์
+        // ==========================================
+        const commentModal = document.getElementById('comment-modal');
+        const commentList = document.getElementById('comment-list');
+
+        function openComments() {
+            commentModal.style.display = 'flex';
+            loadComments();
+        }
+
+        function closeComments() {
+            commentModal.style.display = 'none';
+        }
+
+        commentModal.addEventListener('click', (e) => {
+            if (e.target === commentModal) closeComments();
+        });
+
+        async function loadComments() {
+            commentList.innerHTML = '<p style="text-align:center; color:#94a3b8;">กำลังโหลด...</p>';
+            try {
+                const res = await fetch(`${API}/novels/${novelId}/comments`);
+                const comments = await res.json();
+
+                if (comments.length === 0) {
+                    commentList.innerHTML = '<p style="text-align:center; color:#94a3b8;">ยังไม่มีคอมเมนต์</p>';
+                    return;
+                }
+
+                commentList.innerHTML = comments.map(c => {
+                    const avatar = c.profile_pic 
+                        ? `<img src="${c.profile_pic}" class="comment-avatar">` 
+                        : `<div class="comment-avatar">${c.username.charAt(0).toUpperCase()}</div>`;
+
+                    return `
+                        <div class="comment-item">
+                            ${avatar}
+                            <div class="comment-body">
+                                <div class="comment-author-name">${c.username}</div>
+                                <div>${c.content}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) { commentList.innerHTML = '<p style="color:red;">โหลดไม่สำเร็จ</p>'; }
+        }
+
+        document.getElementById('btn-send-comment').addEventListener('click', async () => {
+            if (!currentUser) return alert("กรุณาเข้าสู่ระบบก่อนคอมเมนต์");
+            const input = document.getElementById('comment-input');
+            const content = input.value.trim();
+            if (!content) return;
+
+            try {
+                const res = await fetch(`${API}/novels/${novelId}/comments`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ user_id: currentUser.id, content: content })
+                });
+                if (res.ok) {
+                    input.value = '';
+                    loadComments();
+                }
+            } catch (err) { alert("ส่งไม่สำเร็จ"); }
+        });
+
+        // เริ่มต้นโหลดข้อมูล
+        fetchStoryline();
 
     </script>
 </body>
