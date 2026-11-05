@@ -13,41 +13,30 @@ exports.getFeedNovels = async (req, res) => {
     try {
         const { rows } = await db.query('SELECT id, title, cover_image, cover_emoji FROM novels ORDER BY RANDOM() LIMIT 6');
         res.json(rows);
-    } catch (err) { 
-        console.error("Feed Query Error:", err); 
-        res.status(500).json({ error: err.message }); 
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// 3. ดึงข้อมูลสำหรับหน้าเล่น (ดึงหน้า, ตัวละคร, บทพูด, ตัวเลือก, และ Story Line)
+// 3. ดึงข้อมูลสำหรับหน้าเล่น (ดึงหน้า, Object, และประวัติการอ่าน)
 exports.getNovelForPlay = async (req, res) => {
     try {
         const novelId = req.params.id;
+        const userId = req.query.userId; // รับ userId จาก Frontend (ถ้ามี)
         
-        // ตรวจสอบว่ามีนิยายเรื่องนี้อยู่จริงไหม
         const { rows: novelCheck } = await db.query('SELECT id, author_id, tags FROM novels WHERE id = $1', [novelId]);
-        if (novelCheck.length === 0) {
-            return res.status(404).json({ error: "ไม่พบนิยายเรื่องนี้" });
-        }
+        if (novelCheck.length === 0) return res.status(404).json({ error: "ไม่พบนิยายเรื่องนี้" });
         
         await db.query('UPDATE novels SET views = views + 1 WHERE id = $1', [novelId]); 
         
-        // ดึงข้อมูล Chapters (เพื่อดู next_chapter_name)
         const { rows: chapters } = await db.query('SELECT id, title, next_chapter_name FROM chapters WHERE novel_id = $1 ORDER BY order_index ASC', [novelId]);
         
-        // ดึงข้อมูล Pages และ Objects
+        // ดึง Pages และ Objects (เพิ่ม storyline_x, storyline_y, target_page_id)
         const { rows: pages } = await db.query(`
-            SELECT p.id, p.background_image, p.storyline_x, p.storyline_y, 
+            SELECT p.id, p.background_image, p.storyline_x, p.storyline_y,
                    COALESCE(json_agg(
                        json_build_object(
-                           'id', o.id,
-                           'type', o.type, 
-                           'image', o.image_url, 
-                           'text', o.text_content, 
-                           'x', o.x_pos, 
-                           'y', o.y_pos, 
-                           'order', o.dialogue_order,
-                           'target_page_id', o.target_page_id
+                           'id', o.id, 'type', o.type, 'image', o.image_url, 
+                           'text', o.text_content, 'x', o.x_pos, 'y', o.y_pos, 
+                           'order', o.dialogue_order, 'target_page_id', o.target_page_id
                        )
                    ) FILTER (WHERE o.id IS NOT NULL), '[]'::json) as objects
             FROM pages p
@@ -58,19 +47,51 @@ exports.getNovelForPlay = async (req, res) => {
             ORDER BY p.order_index ASC
         `, [novelId]);
 
+        // ดึงประวัติการอ่าน (ถ้ามี userId ส่งมา)
+        let readingProgress = [];
+        if (userId) {
+            const { rows: progress } = await db.query(
+                'SELECT page_id FROM reading_progress WHERE user_id = $1 AND novel_id = $2', 
+                [userId, novelId]
+            );
+            readingProgress = progress.map(p => p.page_id);
+        }
+
         res.json({ 
             pages,
-            chapters, // ส่ง chapters ไปด้วยเพื่อให้รู้ว่าบทไหนจบแล้วไปบทไหนต่อ
+            chapters, 
             author_id: novelCheck[0].author_id,
-            tags: novelCheck[0].tags 
+            tags: novelCheck[0].tags,
+            readingProgress // ส่งประวัติการอ่านกลับไปให้ Frontend
         });
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// 4. บันทึก/อัปเดตนิยาย (พร้อม Story Line, Choices, และ Golden Arrow)
+// 4. ดึงข้อมูลเฉพาะสำหรับวาดหน้า Story Line (เบาและเร็วขึ้น)
+exports.getStorylineData = async (req, res) => {
+    try {
+        const novelId = req.params.id;
+        // ดึงเฉพาะหน้าที่มีอยู่ในเรื่องนี้
+        const { rows: pages } = await db.query(`
+            SELECT p.id, p.order_index, p.storyline_x, p.storyline_y,
+                   (SELECT json_agg(json_build_object('id', o.id, 'text', o.text_content, 'target_page_id', o.target_page_id))
+                    FROM objects o WHERE o.page_id = p.id AND o.type = 'choice') as choices
+            FROM pages p
+            JOIN chapters c ON p.chapter_id = c.id
+            WHERE c.novel_id = $1
+            ORDER BY p.order_index ASC
+        `, [novelId]);
+
+        // ดึงข้อมูล Chapter เพื่อทำลูกศรสีทอง
+        const { rows: chapters } = await db.query('SELECT title, next_chapter_name FROM chapters WHERE novel_id = $1', [novelId]);
+
+        res.json({ pages, chapters });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+// 5. บันทึก/อัปเดตนิยาย (แก้บัค Map ID ให้ Choices)
 exports.saveNovel = async (req, res) => {
-    // รับค่า next_chapter_name มาด้วย
-    const { title, author_id, pages, novel_id, cover_image, tags, next_chapter_name } = req.body; 
+    const { title, author_id, pages, novel_id, cover_image, tags } = req.body; 
     const client = await db.connect();
     
     try {
@@ -78,43 +99,44 @@ exports.saveNovel = async (req, res) => {
         let novelId = novel_id;
 
         if (novel_id) {
-            await client.query(
-                'UPDATE novels SET title = $1, cover_image = $2, tags = $3 WHERE id = $4', 
-                [title, cover_image || null, tags || null, novelId]
-            );
-            // ลบ chapter เก่าทิ้งก่อนเขียนใหม่ (Cascade ลบ pages/objects ต่อ)
+            await client.query('UPDATE novels SET title = $1, cover_image = $2, tags = $3 WHERE id = $4', [title, cover_image || null, tags || null, novelId]);
             await client.query('DELETE FROM chapters WHERE novel_id = $1', [novelId]);
         } else {
-            const novelRes = await client.query(
-                'INSERT INTO novels (author_id, title, cover_emoji, cover_image, tags) VALUES ($1, $2, $3, $4, $5) RETURNING id', 
-                [author_id, title, '📖', cover_image || null, tags || null]
-            );
+            const novelRes = await client.query('INSERT INTO novels (author_id, title, cover_emoji, cover_image, tags) VALUES ($1, $2, $3, $4, $5) RETURNING id', [author_id, title, '📖', cover_image || null, tags || null]);
             novelId = novelRes.rows[0].id;
         }
         
-        // สร้าง Chapter (บันทึก next_chapter_name สำหรับลูกศรสีทอง)
-        const chapRes = await client.query(
-            'INSERT INTO chapters (novel_id, title, order_index, next_chapter_name) VALUES ($1, $2, $3, $4) RETURNING id', 
-            [novelId, 'ตอนที่ 1', 1, next_chapter_name || null]
-        );
+        const chapRes = await client.query('INSERT INTO chapters (novel_id, title, order_index) VALUES ($1, $2, $3) RETURNING id', [novelId, 'ตอนที่ 1', 1]);
         const chapterId = chapRes.rows[0].id;
 
-        // วนลูปบันทึกหน้า และ Object
+        const pageIdMap = {}; // เก็บ Map ระหว่าง tempId -> realDbId
+
+        // ลูปที่ 1: บันทึก Pages ทั้งหมดก่อน เพื่อให้ได้ ID จริง
         for (let i = 0; i < pages.length; i++) {
             const page = pages[i];
-            
-            // [อัปเดต] บันทึก storyline_x และ storyline_y
             const pageRes = await client.query(
                 'INSERT INTO pages (chapter_id, background_image, order_index, storyline_x, storyline_y) VALUES ($1, $2, $3, $4, $5) RETURNING id', 
                 [chapterId, page.bg || null, i + 1, page.storyline_x || 100, page.storyline_y || 100]
             );
-            const pageId = pageRes.rows[0].id;
+            const realPageId = pageRes.rows[0].id;
+            
+            // เก็บ ID จริงไว้ใช้ต่อ
+            pageIdMap[page.tempId || page.id] = realPageId; 
+            page.realId = realPageId; 
+        }
 
+        // ลูปที่ 2: บันทึก Objects (เพื่อให้รู้ target_page_id ที่ถูกต้อง)
+        for (let page of pages) {
             for (let obj of page.objects) {
-                // [อัปเดต] บันทึก target_page_id (สำหรับ Choice)
+                let realTargetId = null;
+                // ถ้าเป็น Choice และมี target_temp_id ส่งมา ให้แปลงเป็น ID จริง
+                if (obj.type === 'choice' && obj.target_temp_id) {
+                    realTargetId = pageIdMap[obj.target_temp_id] || null;
+                }
+
                 await client.query(
                     'INSERT INTO objects (page_id, type, image_url, text_content, x_pos, y_pos, z_index, dialogue_order, target_page_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-                    [pageId, obj.type, obj.image || null, obj.text || null, obj.x, obj.y, obj.type === 'dialogue' ? 100 : 10, obj.order || 1, obj.target_page_id || null]
+                    [page.realId, obj.type, obj.image || null, obj.text || null, obj.x, obj.y, obj.type === 'dialogue' ? 100 : 10, obj.order || 1, realTargetId]
                 );
             }
         }
@@ -130,58 +152,55 @@ exports.saveNovel = async (req, res) => {
     }
 };
 
-// 5. บันทึกการให้ดาว (Review)
+// 6. บันทึกประวัติการอ่าน (Reading Progress)
+exports.saveReadingProgress = async (req, res) => {
+    const { userId, pageId, novelId } = req.body;
+    if (!userId || !pageId || !novelId) return res.status(400).json({ error: "ข้อมูลไม่ครบถ้วน" });
+
+    try {
+        await db.query(
+            'INSERT INTO reading_progress (user_id, novel_id, page_id) VALUES ($1, $2, $3) ON CONFLICT (user_id, page_id) DO NOTHING',
+            [userId, novelId, pageId]
+        );
+        res.json({ message: "บันทึกประวัติการอ่านสำเร็จ" });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+// 7. บันทึกการให้ดาว (Review) และค้นหา
 exports.addReview = async (req, res) => {
     const { rating, comment, user_id } = req.body;
     if (!user_id) return res.status(400).json({ error: "กรุณาเข้าสู่ระบบก่อนให้คะแนน" });
-    if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: "คะแนนต้องอยู่ระหว่าง 1-5 ดาว" });
-
     try {
-        await db.query('INSERT INTO reviews (user_id, novel_id, rating, comment) VALUES ($1, $2, $3, $4)', 
-            [user_id, req.params.id, rating, comment || ""]);
+        await db.query('INSERT INTO reviews (user_id, novel_id, rating, comment) VALUES ($1, $2, $3, $4)', [user_id, req.params.id, rating, comment || ""]);
         res.json({ message: "รีวิวสำเร็จ" });
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// 6. ค้นหานิยาย
 exports.searchNovels = async (req, res) => {
     const { q } = req.query;
     try {
-        const { rows } = await db.query(
-            "SELECT * FROM novels WHERE title ILIKE $1 OR description ILIKE $1 OR tags ILIKE $1", 
-            [`%${q}%`]
-        );
+        const { rows } = await db.query("SELECT * FROM novels WHERE title ILIKE $1 OR description ILIKE $1 OR tags ILIKE $1", [`%${q}%`]);
         res.json(rows);
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// ==========================================
-// 7. [เพิ่มใหม่] ระบบคอมเมนต์ (Comments)
-// ==========================================
-
-// ดึงคอมเมนต์ของนิยายเรื่องนั้นๆ
+// 8. ระบบคอมเมนต์
 exports.getComments = async (req, res) => {
     try {
         const { rows } = await db.query(`
             SELECT c.id, c.content, c.created_at, u.username, u.profile_pic 
-            FROM comments c 
-            JOIN users u ON c.user_id = u.id 
-            WHERE c.novel_id = $1 
-            ORDER BY c.created_at DESC
+            FROM comments c JOIN users u ON c.user_id = u.id 
+            WHERE c.novel_id = $1 ORDER BY c.created_at DESC
         `, [req.params.id]);
         res.json(rows);
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// เพิ่มคอมเมนต์ใหม่
 exports.addComment = async (req, res) => {
     const { user_id, content } = req.body;
     if (!user_id) return res.status(400).json({ error: "กรุณาเข้าสู่ระบบก่อนคอมเมนต์" });
-    if (!content || content.trim() === "") return res.status(400).json({ error: "กรุณาพิมพ์ข้อความ" });
-
     try {
-        await db.query('INSERT INTO comments (user_id, novel_id, content) VALUES ($1, $2, $3)', 
-            [user_id, req.params.id, content]);
+        await db.query('INSERT INTO comments (user_id, novel_id, content) VALUES ($1, $2, $3)', [user_id, req.params.id, content]);
         res.json({ message: "คอมเมนต์สำเร็จ" });
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
